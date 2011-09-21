@@ -1,6 +1,6 @@
 """Tests for the property cache."""
 
-import unittest
+from django.test import TestCase
 
 import optimizations
 
@@ -30,7 +30,7 @@ class CachedPropertyTestObj(object):
         return "baz"
 
 
-class OptimizationsTest(unittest.TestCase):
+class OptimizationsTest(TestCase):
 
     def testCachedProperty(self):
         self.assertTrue(isinstance(CachedPropertyTestObj.name, property))
