@@ -27,7 +27,7 @@ class Asset(object):
     
     def get_id(self):
         """Returns a globally unique id for this asset."""
-        return u"file://".format(
+        return u"file://{path}".format(
             path = self.get_path()
         )
     
@@ -47,7 +47,7 @@ class Asset(object):
         
     def open(self):
         """Returns an open File for this asset."""
-        return File(open(self.get_path(), "rb"))
+        return File(open(self.get_path()), "rb")
         
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
@@ -78,29 +78,45 @@ class StaticAsset(Asset):
     def get_path(self):
         """Returns the path of this static asset."""
         if settings.DEBUG:
-            return find_static_asset(self._name)
+            return find_static_path(self._name)
         return safe_join(settings.STATIC_ROOT, self._name)
         
         
-class FieldFileAsset(Asset):
+class FileAsset(Asset):
     
-    """An asset that wraps an uploaded field file."""
+    """An asset that wraps a file."""
     
-    def __init__(self, field_file):
-        """Initializes the field file asset."""
-        self._field_file = field_file
+    def __init__(self, file):
+        """Initializes the file asset."""
+        self._file = file
         
     def get_name(self):
         """Returns the name of this asset."""
-        return self._field_file.name
+        return self._file.name
         
     def get_path(self):
         """Returns the path of this asset."""
-        return self._field_file.path
+        return self._file.path
         
     def open(self):
         """Opens this asset."""
-        return self._field_file.open("rb")
+        self._file.open("rb")
+        return self._file
+
+
+class AdaptiveAsset(Asset):
+
+    """An asset that adapts to wrap as many types as possible."""
+    
+    def __new__(cls, asset):
+        """Creates the new asset."""
+        if isinstance(asset, Asset):
+            return asset
+        if isinstance(asset, File):
+            return FileAsset(asset)
+        if isinstance(asset, basestring):
+            return StaticAsset(asset)
+        raise TypeError("{!r} is not a valid asset".format(asset))
         
         
 class AssetCache(object):
@@ -115,6 +131,9 @@ class AssetCache(object):
         
     def get_name(self, asset):
         """Returns the cached name of the given asset."""
+        # Adapt the asset.
+        asset = AdaptiveAsset(asset)
+        # Get the asset ID.
         asset_id = asset.get_id()
         name = self._name_cache.get(asset_id)
         if name is None:
@@ -122,7 +141,7 @@ class AssetCache(object):
             asset_name = asset.get_name()
             asset_hash = asset.get_hash()
             _, asset_ext = os.path.splitext(asset_name)
-            name = u"{prefix}/{folder}/{hash}.{ext}".format(
+            name = u"{prefix}/{folder}/{hash}{ext}".format(
                 prefix = self._prefix,
                 folder = asset_hash[:2],
                 hash = asset_hash[2:],

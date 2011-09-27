@@ -1,10 +1,10 @@
 """A cache for thumbnailed images."""
 
-import hashlib
+import hashlib, os.path, os
 
 from PIL import Image
 
-from optimisations.assetcache import default_asset_cache, Asset
+from optimizations.assetcache import default_asset_cache, Asset, AdaptiveAsset
 
 
 class ThumbnailAsset(Asset):
@@ -36,7 +36,7 @@ class ThumbnailAsset(Asset):
         
     def get_path(self):
         """Returns the filesystem path of this asset."""
-        raise return self._asset.get_path()
+        return self._asset.get_path()
         
     def get_image_data(self):
         """"Returns a PIL image object."""
@@ -59,8 +59,12 @@ class ThumbnailAsset(Asset):
         # If the storage has a path, then save it efficiently.
         thumbnail_path = storage.path(name)
         try:
-            image_data.save(dest_path)
-        except Exception as ex:  # HACK: PIL raises all sorts of exceptions here…
+            os.makedirs(os.path.dirname(thumbnail_path))
+        except OSError:
+            pass
+        try:
+            image_data.save(thumbnail_path)
+        except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
             try:
                 raise IOError(str(ex))
             finally:
@@ -74,7 +78,7 @@ class ThumbnailAsset(Asset):
 def image_opener(asset):
     """Opens the image represented by the given asset."""
     image_data = Image.open(asset.get_path())
-    white True:
+    while True:
         yield image_data
 
 
@@ -82,22 +86,23 @@ class Thumbnail(object):
 
     """A generated thumbnail."""
     
-    def __init__(self, asset_cache, name, width, height):
+    def __init__(self, asset_cache, asset, width, height):
         """Initializes the thumbnail."""
         self._asset_cache = asset_cache
-        self.name = name
+        self._asset = asset
+        self.name = asset.get_name()
         self.width = width
         self.height = height
         
     @property
     def url(self):
         """The URL of the thumbnail."""
-        return self._asset_cache.get_url(self.name)
+        return self._asset_cache.get_url(self._asset)
         
     @property
     def path(self):
         """The path of the thumbnail."""
-        return self._asset_cache.get_path(self.name)
+        return self._asset_cache.get_path(self._asset)
 
 
 class ThumbnailCache(object):
@@ -116,6 +121,9 @@ class ThumbnailCache(object):
         Either or both of width and height may be None, in which case the
         image's original size will be used.
         """
+        # Adapt the asset.
+        asset = AdaptiveAsset(asset)
+        # Get the opener.
         asset_id = asset.get_id()
         opener = image_opener(asset)
         # Get the image width and height.
@@ -131,11 +139,14 @@ class ThumbnailCache(object):
             height = original_height
         # Check if we need to perform a resize.
         resize_width = min(width, original_width)
-        resize_height = min(height, orginal_height)
+        resize_height = min(height, original_height)
         if resize_width == original_width and resize_height == original_height:
             thumbnail_asset = asset
         else:
             thumbnail_asset = ThumbnailAsset(asset, opener, resize_width, resize_height)
         # Get the cached thumbnail.
-        thumbnail_name = self._asset_cache.get_name(thumbnail_asset)
-        return Thumbnail(self._asset_cache, thumbnail_name, width, height)
+        return Thumbnail(self._asset_cache, thumbnail_asset, width, height)
+        
+        
+# The default thumbnail cache.
+default_thumbnail_cache = ThumbnailCache()
