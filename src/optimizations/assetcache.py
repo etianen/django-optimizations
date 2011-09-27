@@ -14,7 +14,7 @@ from contextlib import closing
 
 from django.contrib.staticfiles.finders import find as find_static_path
 from django.core.files.base import File
-from django.core.files.storage import defaultstorage
+from django.core.files.storage import default_storage
 from django.conf import settings
 from django.utils._os import safe_join
 
@@ -111,7 +111,7 @@ class AssetCache(object):
     
     """A cache of assets."""
     
-    def __init__(self, storage=default_storage, prefex="assets"):
+    def __init__(self, storage=default_storage, prefix="assets"):
         """Initializes the asset cache."""
         self._storage = storage
         self._prefix = prefix
