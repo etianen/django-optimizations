@@ -40,15 +40,10 @@ class Asset(object):
         """
         raise NotImplementedError
     
-    @abstractmethod
-    def get_url(self):
-        """Returns the URL of this asset."""
-        raise NotImplementedError
-        
-    @abstractmethod
+    # Optional helper that makes all of the other methods easier.    
     def get_path(self):
         """Returns the filesystem path of this asset."""
-        raise NotImplementedError
+        raise NotImplementedError("This asset does not support absolute paths")
         
     def open(self):
         """Returns an open File for this asset."""
@@ -61,6 +56,11 @@ class Asset(object):
             for chunk in handle.chunks():
                 hash.update(chunk)
         return hash.hexdigest()
+        
+    def save(self, storage, name):
+        """Saves this asset to the given storage."""
+        with closing(self.open()) as handle:
+            storage.save(name, handle)
 
 
 class StaticAsset(Asset):
@@ -81,10 +81,6 @@ class StaticAsset(Asset):
             return find_static_asset(self._name)
         return safe_join(settings.STATIC_ROOT, self._name)
         
-    def get_url(self):
-        """Returns the URL of this static asset."""
-        return settings.STATIC_URL + self._name
-        
         
 class FieldFileAsset(Asset):
     
@@ -102,9 +98,9 @@ class FieldFileAsset(Asset):
         """Returns the path of this asset."""
         return self._field_file.path
         
-    def get_url(self):
-        """Returns the url of this asset."""
-        return self._field_file.url
+    def open(self):
+        """Opens this asset."""
+        return self._field_file.open("rb")
         
         
 class AssetCache(object):
@@ -134,22 +130,17 @@ class AssetCache(object):
             )
             # Save the file to the asset cache.
             if not self._storage.exists(name):
-                with closing(asset.open()) as handle:
-                    self._storage.save(name, handle)
+                asset.save(self._storage, name)
             # Cache the name.
             self._name_cache[asset_id] = name
         return name
         
     def get_path(self, asset):
         """Returns the cached path of the given asset."""
-        if settings.DEBUG:
-            return asset.get_path()
         return self._storage.path(self.get_name(asset))
         
     def get_url(self, asset):
         """Returns the cached url of the given asset."""
-        if settings.DEBUG:
-            return asset.get_url()
         return self._storage.url(self.get_name(asset))
         
         
