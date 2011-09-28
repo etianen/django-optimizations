@@ -68,17 +68,35 @@ class ParameterNode(template.Node):
         return unicode(result)
     
     
-def parameter_tag(takes_context=False):
+def parameter_tag(register, takes_context=False):
     """A decorator for a function that should be converted to a parameter tag."""
     def decorator(func):
+        @register.tag
         @wraps(func)
         def compiler(parser, token):
             args, kwargs, alias = parse_token(token)
             return ParameterNode(takes_context, func, args, kwargs, alias)
         return compiler
-    # Adapt to no arguments.
-    if callable(takes_context):
-        func = takes_context
-        takes_context = False
-        return decorator(func)
+    return decorator
+    
+    
+def template_tag(register, template_name, takes_context=False):
+    """A decorator for a function that should be converted into a template tag."""
+    def decorator(func):
+        @parameter_tag(register, takes_context=True)
+        @wraps(func)
+        def do_template_tag(context, *args, **kwargs):
+            # Apply the context.
+            if takes_context:
+                args = [context] + list(args)
+            # Run the tag handler.
+            params = func(*args, **kwargs)
+            # Render the template.
+            context.push()
+            try:
+                context.update(params)
+                return template.loader.render_to_string(template_name, context)
+            finally:
+                context.pop()
+        return do_template_tag
     return decorator

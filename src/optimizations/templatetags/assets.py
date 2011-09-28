@@ -33,8 +33,7 @@ class ThumbnailRenderer(object):
         })
     
 
-@register.tag
-@parameter_tag
+@parameter_tag(register)
 def img(src, width=None, height=None, alt="", **attrs):
     """Renders an image tag."""
     thumbnail = default_thumbnail_cache.get_thumbnail(
