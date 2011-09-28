@@ -26,18 +26,18 @@ class JavascriptAsset(Asset):
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = {
-            compress: self._compress,
+            "compress": self._compress,
         }
         urls = []
         paths = []
         # Add in the assets.
         for asset in self._assets:
             try:
-                urls.append(assets.get_url())
+                urls.append(asset.get_url())
             except NotImplementedError:
                 pass
             try:
-                paths.append(assets.get_path())
+                paths.append(asset.get_path())
             except NotImplementedError:
                 pass
         # Apply the urls and paths.
@@ -50,8 +50,8 @@ class JavascriptAsset(Asset):
         
     def get_mtime(self):
         """Returns the modified time for this asset."""
-        return max(asset.get_mtime() for asset in self.assets)
-        
+        return max(asset.get_mtime() for asset in self._assets)
+    
     def _get_js_code(self):
         """Loads all the js code."""
         js_code_parts = []
@@ -77,7 +77,9 @@ class JavascriptAsset(Asset):
             post_data = urlencode(params, doseq=True)
             # Send the request.
             with closing(httplib.HTTPConnection("closure-compiler.appspot.com", timeout=10)) as connection:
-                connection.request("POST", "/compile", post_data)
+                connection.request("POST", "/compile", post_data, {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                })
                 response = connection.getresponse()
                 compressed_js_code = response.read()
             # Save the code.
@@ -96,14 +98,14 @@ class JavascriptCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
         
-    def get_urls(self, *assets, compress=True):
+    def get_urls(self, assets, compress=True):
         """Returns a sequence of script URLs for the given assets."""
         assets = [AdaptiveAsset(asset) for asset in assets]
         # If we're in debug, then just return the URLs.
         if settings.DEBUG:
             return [self._asset_cache.get_url(asset) for asset in assets]
         # Actually do the caching.
-        return self._asset_cache.get_url(JavascriptAsset(assets, compress))
+        return [self._asset_cache.get_url(JavascriptAsset(assets, compress))]
         
         
 # The default javascript cache.

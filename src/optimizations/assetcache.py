@@ -170,7 +170,7 @@ class FileAsset(Asset):
         """Opens this asset."""
         self._file.open("rb")
         return self._file
-
+        
 
 class AdaptiveAsset(Asset):
 

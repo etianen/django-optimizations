@@ -3,6 +3,7 @@
 from django import template
 
 from optimizations.thumbnailcache import default_thumbnail_cache
+from optimizations.javascriptcache import default_javascript_cache
 from optimizations.templatetags import parameter_tag
 
 
@@ -42,3 +43,30 @@ def img(src, width=None, height=None, alt="", **attrs):
         height = height,
     )
     return ThumbnailRenderer(thumbnail, alt, attrs)
+    
+    
+class ScriptRenderer(object):
+
+    """Renders a script tag."""
+
+    def __init__(self, url):
+        """Initializes the script renderer."""
+        self.url = url
+        
+    def __unicode__(self):
+        """Renders the script tags."""
+        return template.loader.render_to_string("assets/script.html", {
+            "url": self.url,
+        })
+    
+    
+@parameter_tag(register, takes_context=True)
+def script(context, src):
+    """Renders one or more script tags."""
+    return ScriptRenderer(default_javascript_cache.get_urls((src,))[0])
+    
+    
+@parameter_tag(register, takes_context=True, takes_body=True)
+def compress(context, body):
+    """Joins and compresses all contained assets."""
+    return body.render(context)

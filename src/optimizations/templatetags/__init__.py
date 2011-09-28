@@ -38,13 +38,14 @@ class ParameterNode(template.Node):
 
     """A node for a paramter tag."""
     
-    def __init__(self, takes_context, func, args, kwargs, alias):
+    def __init__(self, takes_context, func, args, kwargs, alias, body):
         """Initializes the parameter node."""
         self._takes_context = takes_context
         self._func = func
         self._args = args
         self._kwargs = kwargs
         self._alias = alias
+        self._body = body
         
     def render(self, context):
         """Renders the parameter node."""
@@ -58,6 +59,9 @@ class ParameterNode(template.Node):
         # Add in the context.
         if self._takes_context:
             args.insert(0, context)
+        # Add in the body.
+        if self._body is not None:
+            kwargs["body"] = self._body
         # Run the tag.
         result = self._func(*args, **kwargs)
         # Alias if required.
@@ -68,14 +72,23 @@ class ParameterNode(template.Node):
         return unicode(result)
     
     
-def parameter_tag(register, takes_context=False):
+def parameter_tag(register, takes_context=False, takes_body=False):
     """A decorator for a function that should be converted to a parameter tag."""
     def decorator(func):
         @register.tag
         @wraps(func)
         def compiler(parser, token):
+            # Parse the token.
             args, kwargs, alias = parse_token(token)
-            return ParameterNode(takes_context, func, args, kwargs, alias)
+            # Parse the body.
+            if takes_body:
+                end_tag_name = u"end{name}".format(name=func.__name__)
+                body = parser.parse((end_tag_name,))
+                parser.delete_first_token()
+            else:
+                body = None
+            # Create the parameter node.
+            return ParameterNode(takes_context, func, args, kwargs, alias, body)
         return compiler
     return decorator
     
