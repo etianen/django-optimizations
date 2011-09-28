@@ -147,11 +147,17 @@ class FileAsset(Asset):
         
     def get_path(self):
         """Returns the path of this asset."""
-        return self._file.path
+        try:
+            return self._file.path
+        except AttributeError:
+            return os.path.abspath(self._file.name)
     
     def get_url(self):
         """Returns the URL of this asset."""
-        return self._file.url
+        try:
+            return self._file.url
+        except AttributeError:
+            raise NotImplementedError("Underlying file does not have a URL.")
     
     def get_mtime(self):
         """Returns the mtime of this asset."""
