@@ -1,13 +1,30 @@
 """Template tags used for optimizing assets."""
 
 from django import template
+from django.utils.html import escape, escapejs
 
+from optimizations.assetcache import default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.templatetags import parameter_tag
 
 
 register = template.Library()
+
+
+# Escape functions for the asset tag.
+asset_escapers = {
+    "html": escape,
+    "js": escapejs,
+}
+
+
+@parameter_tag(register)
+def asset(src, escape="html"):
+    """Returns the cached asset URL of the given asset."""
+    url = default_asset_cache.get_url(src)
+    return asset_escapers[escape](url)
+    
 
 
 class ThumbnailRenderer(object):

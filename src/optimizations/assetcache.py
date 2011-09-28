@@ -199,8 +199,6 @@ class AssetCache(object):
         
     def get_name(self, asset):
         """Returns the cached name of the given asset."""
-        # Adapt the asset.
-        asset = AdaptiveAsset(asset)
         # Get the asset ID.
         asset_id = asset.get_id()
         name = self._name_cache.get(asset_id)
@@ -224,6 +222,7 @@ class AssetCache(object):
         
     def get_path(self, asset):
         """Returns the cached path of the given asset."""
+        asset = AdaptiveAsset(asset)
         if settings.DEBUG:
             try:
                 return asset.get_path()
@@ -233,6 +232,7 @@ class AssetCache(object):
         
     def get_url(self, asset):
         """Returns the cached url of the given asset."""
+        asset = AdaptiveAsset(asset)
         if settings.DEBUG:
             try:
                 return asset.get_url()
