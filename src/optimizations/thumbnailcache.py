@@ -98,7 +98,7 @@ class ThumbnailCache(object):
     
     def __init__(self, asset_cache=default_asset_cache):
         """Initializes the thumbnail cache."""
-        self._asset_cache = default_asset_cache
+        self._asset_cache = asset_cache
         self._size_cache = {}
         
     def get_thumbnail(self, asset, width=None, height=None):
