@@ -86,7 +86,8 @@ class JavascriptAsset(Asset):
                         "Content-Type": "application/x-www-form-urlencoded",
                     })
                     response = connection.getresponse()
-                    response_data = json.load(response)
+                    response_str = response.read()
+                response_data = json.loads(response_str)
                 # Parse the response data.
                 if len(response_data.get("errors", ())) > 0:
                     # If it's debug, complain loudly.
@@ -104,7 +105,7 @@ class JavascriptAsset(Asset):
                     # Just use the normal js code.
                     compressed_js_code = js_code
                 else:
-                    compressed_js_code = response_data["compiledCode"]
+                    compressed_js_code = response_data["compiledCode"].decode("ascii").encode("utf-8")
             else:
                 compressed_js_code = js_code
             # Save the code.
