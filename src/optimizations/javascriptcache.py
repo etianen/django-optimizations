@@ -5,7 +5,9 @@ from contextlib import closing
 
 from django.core.files.base import ContentFile
 from django.conf import settings
+from django.core.mail import mail_admins
 from django.utils.http import urlencode
+from django.utils import simplejson as json
 
 from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache
 
@@ -67,21 +69,44 @@ class JavascriptAsset(Asset):
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compress:
-            # Format a request to the Google closure compiler service.
-            params = [
-                ("js_code", self._get_js_code()),
-                ("compilation_level", "SIMPLE_OPTIMIZATIONS"),
-                ("output_format", "text"),
-                ("output_info", "compiled_code"),
-            ]
-            post_data = urlencode(params, doseq=True)
-            # Send the request.
-            with closing(httplib.HTTPConnection("closure-compiler.appspot.com", timeout=10)) as connection:
-                connection.request("POST", "/compile", post_data, {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                })
-                response = connection.getresponse()
-                compressed_js_code = response.read()
+            js_code = self._get_js_code().strip()
+            if js_code:
+                # Format a request to the Google closure compiler service.
+                params = [
+                    ("js_code", self._get_js_code()),
+                    ("compilation_level", "SIMPLE_OPTIMIZATIONS"),
+                    ("output_format", "json"),
+                    ("output_info", "compiled_code"),
+                    ("output_info", "errors"),
+                ]
+                post_data = urlencode(params, doseq=True)
+                # Send the request.
+                with closing(httplib.HTTPConnection("closure-compiler.appspot.com", timeout=10)) as connection:
+                    connection.request("POST", "/compile", post_data, {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    })
+                    response = connection.getresponse()
+                    response_data = json.load(response)
+                # Parse the response data.
+                if len(response_data.get("errors", ())) > 0:
+                    # If it's debug, complain loudly.
+                    if settings.DEBUG:
+                        raise SyntaxError(repr(response_data["errors"]))
+                    # If we're in production, tell the admins.
+                    mail_admins(
+                        "Javascript compilation error",
+                        u"Files: {files}\n\nErrors: {errors}\n\n{src}".format(
+                            files = u", ".join(asset.get_name() for asset in self._assets),
+                            errors = repr(response_data["errors"]),
+                            src = js_code,
+                        ),
+                    )
+                    # Just use the normal js code.
+                    compressed_js_code = js_code
+                else:
+                    compressed_js_code = response_data["compiledCode"]
+            else:
+                compressed_js_code = js_code
             # Save the code.
             file = ContentFile(compressed_js_code)
             storage.save(name, file)
