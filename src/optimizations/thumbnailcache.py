@@ -17,37 +17,24 @@ class ThumbnailAsset(Asset):
         self._opener = opener
         self._width = width
         self._height = height
-        
-    def get_id(self):
-        """Returns a globally unique id for this asset."""
-        return "{asset_id}?width={width}&height={height}".format(
-            asset_id = self._asset.get_id(),
-            width = self._width,
-            height = self._height,
-        )
     
     def get_name(self):
-        """
-        Returns the name of this asset.
-        
-        It does not have to be globally unique.
-        """
+        """Returns the name of this asset."""
         return self._asset.get_name()
         
     def get_path(self):
         """Returns the filesystem path of this asset."""
         return self._asset.get_path()
+    
+    def get_id_params(self):
+        """"Returns the params which should be used to generate the id."""
+        params = super(ThumbnailAsset, self).get_id_params()
+        params["width"] = self._width
+        params["height"] = self._height
         
     def get_image_data(self):
         """"Returns a PIL image object."""
         return Image.open(self.get_path())
-        
-    def get_hash(self):
-        """Returns the sha1 hash of this asset's contents."""
-        hash = hashlib.sha1(self._asset.get_hash())
-        hash.update(str(self._width))
-        hash.update(str(self._height))
-        return hash.hexdigest()
         
     def save(self, storage, name):
         """Saves this asset to the given storage."""

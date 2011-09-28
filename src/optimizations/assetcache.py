@@ -1,7 +1,7 @@
 """
 An asset cache stores a copy of slow-to-obtain website assets
 on a fast file storage. Assets are stored based on a hash of their
-contents, so it's safe to update the source and have the asset cache
+path and mtime, so it's safe to update the source and have the asset cache
 automatically cleared.
 
 A classic use of an asset cache is to copy static files from a server with
@@ -19,17 +19,16 @@ from django.conf import settings
 from django.utils._os import safe_join
 
 
+def freeze_dict(params):
+    """Returns an invariant version of the dictionary, suitable for hashing."""
+    return tuple(sorted((params).iteritems()))
+
+
 class Asset(object):
 
     """An asset that is available to the asset cache."""
 
     __metaclass__ = ABCMeta
-    
-    def get_id(self):
-        """Returns a globally unique id for this asset."""
-        return u"file://{path}".format(
-            path = self.get_path()
-        )
     
     @abstractmethod
     def get_name(self):
@@ -40,22 +39,66 @@ class Asset(object):
         """
         raise NotImplementedError
     
-    # Optional helper that makes all of the other methods easier.    
     def get_path(self):
         """Returns the filesystem path of this asset."""
         raise NotImplementedError("This asset does not support absolute paths")
+    
+    def get_url(self):
+        """Returns the frontend URL of this asset."""
+        raise NotImplementedError("This asset does not have a URL")
+    
+    def get_mtime(self):
+        """Returns the last modified time of this asset."""
+        return os.path.getmtime(self.get_path())
+    
+    def get_id_params(self):
+        """"Returns the params which should be used to generate the id."""
+        params = {}
+        # Add the path.
+        try:
+            params["path"] = self.get_path()
+        except NotImplementedError:
+            pass
+        # Add the URL.
+        try:
+            params["url"] = self.get_url()
+        except NotImplementedError:
+            pass
+        # All done!
+        return params
+    
+    def _get_and_check_id_params(self):
+        """Retrieves the id params, and checks that some exist."""
+        params = self.get_id_params()
+        if not params:
+            raise NotImplementedError("This asset does not have a path or a url.")
+        return params
+    
+    def get_id(self):
+        """Returns a globally unique id for this asset."""
+        return freeze_dict(self._get_and_check_id_params())
         
     def open(self):
         """Returns an open File for this asset."""
         return File(open(self.get_path()), "rb")
+    
+    def get_hash_params(self):
+        """Returns the params which should be used to generate the hash."""
+        params = self._get_and_check_id_params()
+        params["mtime"] = self.get_mtime()
+        return params
         
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
-        hash = hashlib.sha1()
-        with closing(self.open()) as handle:
-            for chunk in handle.chunks():
-                hash.update(chunk)
-        return hash.hexdigest()
+        return hashlib.sha1(
+            u"&".join(
+                u"{key}={value}".format(
+                    key = key,
+                    value = value,
+                )
+                for key, value in freeze_dict(self.get_hash_params())
+            )
+        ).hexdigest()
         
     def save(self, storage, name):
         """Saves this asset to the given storage."""
@@ -81,6 +124,14 @@ class StaticAsset(Asset):
             return find_static_path(self._name)
         return safe_join(settings.STATIC_ROOT, self._name)
         
+    def get_url(self):
+        """Returns the URL of this static asset."""
+        return settings.STATIC_URL + self._name
+        
+    def get_mtime(self):
+        """Returns the mtime of this static asset."""
+        return os.path.getmtime(self.get_path())
+        
         
 class FileAsset(Asset):
     
@@ -97,7 +148,18 @@ class FileAsset(Asset):
     def get_path(self):
         """Returns the path of this asset."""
         return self._file.path
-        
+    
+    def get_url(self):
+        """Returns the URL of this asset."""
+        return self._file.url
+    
+    def get_mtime(self):
+        """Returns the mtime of this asset."""
+        storage = getattr(self._file, "storage", None)
+        if storage:
+            return storage.modified_time(self._file.name)
+        return super(FileAsset, self).get_mtime()
+    
     def open(self):
         """Opens this asset."""
         self._file.open("rb")
@@ -156,10 +218,20 @@ class AssetCache(object):
         
     def get_path(self, asset):
         """Returns the cached path of the given asset."""
+        if settings.DEBUG:
+            try:
+                return asset.get_path()
+            except NotImplementedError:
+                pass
         return self._storage.path(self.get_name(asset))
         
     def get_url(self, asset):
         """Returns the cached url of the given asset."""
+        if settings.DEBUG:
+            try:
+                return asset.get_url()
+            except NotImplementedError:
+                pass
         return self._storage.url(self.get_name(asset))
         
         
