@@ -126,15 +126,6 @@ class StaticAsset(Asset):
             path = os.path.join(settings.STATIC_ROOT, name)
         return os.path.abspath(path)
         
-    @staticmethod
-    def scan_dir(dirname, pattern="*"):
-        """Scans the given directory, returning a list of static assets that match the given pattern."""
-        script_path = StaticAsset.get_static_path(dirname)
-        return [
-            StaticAsset(os.path.join(dirname, os.path.relpath(path, script_path)))
-            for path in glob.iglob(os.path.join(script_path, pattern))
-        ]
-        
     def get_path(self):
         """Returns the path of this static asset."""
         return StaticAsset.get_static_path(self._name)
@@ -146,6 +137,70 @@ class StaticAsset(Asset):
     def get_mtime(self):
         """Returns the mtime of this static asset."""
         return os.path.getmtime(self.get_path())
+        
+        
+class StaticAssetLoader(object):
+    
+    """A loader of static assets."""
+    
+    @staticmethod
+    def load(type, assets):
+        """Resolves the given asset name into a list of static assets."""
+        # Adapt a single asset to a list.
+        if isinstance(assets, (basestring, Asset)):
+            assets = [assets]
+        # Adapt asset names to assets.
+        asset_objs = []
+        for asset in assets:
+            # Leave actual assets as they are.
+            if isinstance(asset, Asset):
+                asset_obs.append(asset)
+            # Convert asset group ids into assets.
+            asset_group = StaticAssetLoader._cache.get(asset, {}).get(type)
+            if asset_group:
+                asset_objs.extend(asset_group.assets)
+            else:
+                asset_objs.append(StaticAsset(script_path))
+        return asset_objs
+    
+    @staticmethod
+    def get_namespaces():
+        """Returns a list of all namespaces in the static asset loader."""
+        return StaticAssetLoader._cache.keys()
+    
+    @staticmethod
+    def initialize():
+        """Loads all static assets."""
+        cache = StaticAssetLoader._cache = {}
+        # Load in all namespaces.
+        for namespace, types in getattr(settings, "ASSETS", {}).iteritems():
+            type_cache = cache[namespace] = {}
+            for type, config in types.iteritems():
+                type_cache[type] = StaticAssetLoader(type, **config)
+    
+    def __init__(self, type, dirname="", files=(), pattern=None):
+        """Initializes the static asset loader."""
+        self.type = type
+        self._dirname = dirname
+        self._files = files
+        # Create the loaded list of assets.
+        asset_names = [
+            os.path.join(dirname, file)
+            for file in files
+        ]
+        # Scan the directory.
+        root_path = StaticAsset.get_static_path(dirname)
+        pattern = pattern or "*." + type
+        asset_names.extend(
+            os.path.join(dirname, os.path.relpath(path, root_path))
+            for path in glob.iglob(os.path.join(root_path, pattern))
+        )
+        # Create the assets.
+        self.assets = [StaticAsset(asset_name) for asset_name in asset_names]
+        
+        
+# Create all available asset loaders.
+StaticAssetLoader.initialize()
         
         
 class FileAsset(Asset):

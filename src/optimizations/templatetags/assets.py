@@ -3,7 +3,7 @@
 from django import template
 from django.utils.html import escape, escapejs
 
-from optimizations.assetcache import default_asset_cache
+from optimizations.assetcache import StaticAssetLoader, default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.templatetags import parameter_tag
@@ -97,4 +97,5 @@ class MultiScriptRenderer(object):
 @parameter_tag(register)
 def script(src="default"):
     """Renders one or more script tags."""
-    return MultiScriptRenderer(default_javascript_cache.get_urls(src))
+    assets = StaticAssetLoader.load("js", src)
+    return MultiScriptRenderer(default_javascript_cache.get_urls(assets))

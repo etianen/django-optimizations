@@ -132,34 +132,12 @@ class JavascriptCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
     
-    def _resolve_assets(self, assets):
-        """Resolves the given assets into a list of asset objects."""
-        # Adapt a single asset to a list.
-        if isinstance(assets, (basestring, Asset)):
-            assets = [assets]
-        # Adapt asset names to assets.
-        asset_objs = []
-        for asset in assets:
-            # Leave actual assets as they are.
-            if isinstance(asset, Asset):
-                asset_obs.append(asset)
-            # Convert asset group ids into assets.
-            asset_group = getattr(settings, "ASSETS", {}).get(asset)
-            if asset_group:
-                # Process asset lists.
-                asset_objs.extend(StaticAsset(script) for script in asset_group.get("scripts", ()))
-                # Process asset dirs.
-                script_dir = asset_group.get("script_dir")
-                asset_objs.extend(StaticAsset.scan_dir(script_dir, "*.js"))
-            else:
-                asset_objs.append(StaticAsset(script_path))
-        return [AdaptiveAsset(asset) for asset in asset_objs]
-    
     def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG), fail_silently=True):
         """Returns a sequence of script URLs for the given assets."""
-        assets = self._resolve_assets(assets)
         if force_save:
-            return [self._asset_cache.get_url(JavascriptAsset(assets, compile, fail_silently=fail_silently))]    
+            if assets:
+                return [self._asset_cache.get_url(JavascriptAsset(assets, compile, fail_silently=fail_silently))]    
+            return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         
         

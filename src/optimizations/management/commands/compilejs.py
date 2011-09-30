@@ -5,6 +5,7 @@ import logging
 from django.core.management.base import NoArgsCommand
 from django.conf import settings
 
+from optimizations.assetcache import StaticAssetLoader
 from optimizations.javascriptcache import default_javascript_cache, JavascriptError
 
 
@@ -29,9 +30,13 @@ class Command(NoArgsCommand):
             handler.setFormatter(logging.Formatter(u"Line %(jslineno)s: %(error)s"))
             logger.addHandler(handler)
         # Run the compiler.
-        for asset_group in getattr(settings, "ASSETS", {}).iterkeys():
+        for namespace in StaticAssetLoader.get_namespaces():
             try:
-                default_javascript_cache.get_urls(asset_group, compile=True, force_save=True, fail_silently=False)
+                assets = StaticAssetLoader.load("js", namespace);
+                default_javascript_cache.get_urls(assets, compile=True, force_save=True, fail_silently=False)
             except JavascriptError:
                 # The errors have already been logged, so nothing to do here.
                 pass
+            else:
+                if verbosity >= 2:
+                    self.stdout.write("Compiled javascript in namespace {!r}.\n".format(namespace))
