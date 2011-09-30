@@ -1,11 +1,7 @@
 """Template tags used for optimizing assets."""
 
-import os.path, glob
-
 from django import template
 from django.utils.html import escape, escapejs
-from django.contrib.staticfiles.finders import find as find_static_path
-from django.conf import settings
 
 from optimizations.assetcache import default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
@@ -101,21 +97,4 @@ class MultiScriptRenderer(object):
 @parameter_tag(register)
 def script(src="default"):
     """Renders one or more script tags."""
-    assets = getattr(settings, "ASSETS", {}).get(src)
-    if assets:
-        # Get the script list.
-        scripts = list(assets.get("scripts", ()))
-        # Process the script dir.
-        script_dir = assets.get("script_dir")
-        if script_dir:
-            if settings.DEBUG:
-                script_path = find_static_path(script_dir)
-            else:
-                script_path = os.path.join(settings.STATIC_ROOT, script_dir)
-            scripts.extend(
-                os.path.join(script_dir, os.path.relpath(path, script_path))
-                for path in glob.iglob(os.path.join(script_path, "*.js"))
-            )
-    else:
-        scripts = (src,)
-    return MultiScriptRenderer(default_javascript_cache.get_urls(scripts))
+    return MultiScriptRenderer(default_javascript_cache.get_urls(src))

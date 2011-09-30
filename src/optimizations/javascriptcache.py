@@ -1,6 +1,6 @@
 """A cache of javascipt files, optionally compressed."""
 
-import httplib, logging
+import httplib, logging, os.path, glob
 from contextlib import closing
 
 from django.core.files.base import ContentFile
@@ -8,8 +8,9 @@ from django.conf import settings
 from django.core.mail import mail_admins
 from django.utils.http import urlencode
 from django.utils import simplejson as json
+from django.contrib.staticfiles.finders import find as find_static_path
 
-from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache
+from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache, StaticAsset
 
 
 logger = logging.getLogger("optimizations.javascript")
@@ -19,10 +20,10 @@ class JavascriptAsset(Asset):
 
     """An asset that represents one or more javascript files."""
     
-    def __init__(self, assets, compress):
+    def __init__(self, assets, compile):
         """Initializes the asset."""
         self._assets = assets
-        self._compress = compress
+        self._compile = compile
     
     def get_name(self):
         """Returns the name of this asset."""
@@ -31,7 +32,7 @@ class JavascriptAsset(Asset):
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = {
-            "compress": self._compress,
+            "compile": self._compile,
         }
         urls = []
         paths = []
@@ -71,7 +72,7 @@ class JavascriptAsset(Asset):
     
     def save(self, storage, name):
         """Saves this asset to the given storage."""
-        if self._compress and not settings.DEBUG:
+        if self._compile:
             js_code = self._get_js_code().strip()
             if js_code:
                 # Format a request to the Google closure compiler service.
@@ -118,15 +119,44 @@ class JavascriptCache(object):
     def __init__(self, asset_cache=default_asset_cache):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
-        
-    def get_urls(self, assets, compress=True):
+    
+    def _resolve_assets(self, assets):
+        """Resolves the given assets into a list of asset objects."""
+        # Adapt a single asset to a list.
+        if isinstance(assets, (basestring, Asset)):
+            assets = [assets]
+        # Adapt asset names to assets.
+        asset_objs = []
+        for asset in assets:
+            # Leave actual assets as they are.
+            if isinstance(asset, Asset):
+                asset_obs.append(asset)
+            # Convert asset group ids into assets.
+            asset_group = getattr(settings, "ASSETS", {}).get(asset)
+            if asset_group:
+                # Process asset lists.
+                asset_objs.extend(AdaptiveAsset(script) for script in asset_group.get("scripts", ()))
+                # Process asset dirs.
+                script_dir = asset_group.get("script_dir")
+                if script_dir:
+                    if settings.DEBUG:
+                        script_path = find_static_path(script_dir)
+                    else:
+                        script_path = os.path.join(settings.STATIC_ROOT, script_dir)
+                    asset_objs.extend(
+                        StaticAsset(os.path.join(script_dir, os.path.relpath(path, script_path)))
+                        for path in glob.iglob(os.path.join(script_path, "*.js"))
+                    )
+            else:
+                asset_objs.append(StaticAsset(script_path))
+        return [AdaptiveAsset(asset) for asset in asset_objs]
+    
+    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG)):
         """Returns a sequence of script URLs for the given assets."""
-        assets = [AdaptiveAsset(asset) for asset in assets]
-        # If we're in debug, then just return the URLs.
-        if settings.DEBUG:
-            return [self._asset_cache.get_url(asset) for asset in assets]
-        # Actually do the caching.
-        return [self._asset_cache.get_url(JavascriptAsset(assets, compress))]
+        assets = self._resolve_assets(assets)
+        if force_save:
+            return [self._asset_cache.get_url(JavascriptAsset(assets, compile))]    
+        return [self._asset_cache.get_url(asset) for asset in assets]
         
         
 # The default javascript cache.
