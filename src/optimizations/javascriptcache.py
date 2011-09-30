@@ -16,14 +16,20 @@ from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache, 
 logger = logging.getLogger("optimizations.javascript")
 
 
+class JavascriptError(Exception):
+    
+    """Something went wrong with javascript compilation."""
+
+
 class JavascriptAsset(Asset):
 
     """An asset that represents one or more javascript files."""
     
-    def __init__(self, assets, compile):
+    def __init__(self, assets, compile, fail_silently):
         """Initializes the asset."""
         self._assets = assets
         self._compile = compile
+        self._fail_silently = fail_silently
     
     def get_name(self):
         """Returns the name of this asset."""
@@ -93,13 +99,19 @@ class JavascriptAsset(Asset):
                     response_str = response.read()
                 response_data = json.loads(response_str)
                 # Log the errors and warnings.
+                def get_extra(extra):
+                    extra["jslineno"] = extra.pop("lineno")
+                    return extra
                 for error in response_data.get("errors", ()):
-                    logger.error(error["error"], **error)
+                    logger.error(error["error"], extra=get_extra(error))
                 for warning in response_data.get("warnings", ()):
-                    logger.warning(warning["warning"], **warning)
+                    logger.warning(warning["warning"], extra=get_extra(warning))
                 # Save the compressed code, if available.
                 if len(response_data.get("errors", ())) > 0:
-                    compressed_js_code = js_code
+                    if self._fail_silently:
+                        compressed_js_code = js_code
+                    else:
+                        raise JavascriptError(response_data["errors"][0]["error"])
                 else:
                     compressed_js_code = response_data["compiledCode"].decode("ascii").encode("utf-8")
             else:
@@ -151,11 +163,11 @@ class JavascriptCache(object):
                 asset_objs.append(StaticAsset(script_path))
         return [AdaptiveAsset(asset) for asset in asset_objs]
     
-    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG)):
+    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG), fail_silently=True):
         """Returns a sequence of script URLs for the given assets."""
         assets = self._resolve_assets(assets)
         if force_save:
-            return [self._asset_cache.get_url(JavascriptAsset(assets, compile))]    
+            return [self._asset_cache.get_url(JavascriptAsset(assets, compile, fail_silently=fail_silently))]    
         return [self._asset_cache.get_url(asset) for asset in assets]
         
         
