@@ -177,7 +177,7 @@ class StaticAssetLoader(object):
         """Loads all static assets."""
         cache = StaticAssetLoader._cache = {}
         # Load in all namespaces.
-        for namespace, types in getattr(settings, "ASSETS", {}).iteritems():
+        for namespace, types in getattr(settings, "STATIC_ASSETS", {}).iteritems():
             type_cache = cache[namespace] = {}
             for type, config in types.iteritems():
                 type_cache[type] = StaticAssetLoader(type, **config)
