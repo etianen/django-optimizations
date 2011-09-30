@@ -1,6 +1,6 @@
 """A cache of javascipt files, optionally compressed."""
 
-import httplib
+import httplib, logging
 from contextlib import closing
 
 from django.core.files.base import ContentFile
@@ -10,6 +10,9 @@ from django.utils.http import urlencode
 from django.utils import simplejson as json
 
 from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache
+
+
+logger = logging.getLogger("optimizations.javascript")
 
 
 class JavascriptAsset(Asset):
@@ -68,7 +71,7 @@ class JavascriptAsset(Asset):
     
     def save(self, storage, name):
         """Saves this asset to the given storage."""
-        if self._compress:
+        if self._compress and not settings.DEBUG:
             js_code = self._get_js_code().strip()
             if js_code:
                 # Format a request to the Google closure compiler service.
@@ -88,21 +91,13 @@ class JavascriptAsset(Asset):
                     response = connection.getresponse()
                     response_str = response.read()
                 response_data = json.loads(response_str)
-                # Parse the response data.
+                # Log the errors and warnings.
+                for error in response_data.get("errors", ()):
+                    logger.error(error["error"], **error)
+                for warning in response_data.get("warnings", ()):
+                    logger.warning(warning["warning"], **warning)
+                # Save the compressed code, if available.
                 if len(response_data.get("errors", ())) > 0:
-                    # If it's debug, complain loudly.
-                    if settings.DEBUG:
-                        raise SyntaxError(repr(response_data["errors"]))
-                    # If we're in production, tell the admins.
-                    mail_admins(
-                        "Javascript compilation error",
-                        u"Files: {files}\n\nErrors: {errors}\n\n{src}".format(
-                            files = u", ".join(asset.get_name() for asset in self._assets),
-                            errors = repr(response_data["errors"]),
-                            src = js_code,
-                        ),
-                    )
-                    # Just use the normal js code.
                     compressed_js_code = js_code
                 else:
                     compressed_js_code = response_data["compiledCode"].decode("ascii").encode("utf-8")

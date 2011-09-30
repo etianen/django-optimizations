@@ -16,7 +16,6 @@ from django.contrib.staticfiles.finders import find as find_static_path
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.conf import settings
-from django.utils._os import safe_join
 
 
 def freeze_dict(params):
@@ -122,7 +121,7 @@ class StaticAsset(Asset):
         """Returns the path of this static asset."""
         if settings.DEBUG:
             return find_static_path(self._name)
-        return safe_join(settings.STATIC_ROOT, self._name)
+        return os.path.join(settings.STATIC_ROOT, self._name)
         
     def get_url(self):
         """Returns the URL of this static asset."""
