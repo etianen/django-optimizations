@@ -122,6 +122,8 @@ class StaticAsset(Asset):
         """Returns the full static path of the given name."""
         if settings.DEBUG:
             path = find_static_path(name)
+            if path is None:
+                path = os.path.join(settings.STATIC_ROOT, name)
         else:
             path = os.path.join(settings.STATIC_ROOT, name)
         return os.path.abspath(path)
@@ -156,11 +158,13 @@ class StaticAssetLoader(object):
             if isinstance(asset, Asset):
                 asset_obs.append(asset)
             # Convert asset group ids into assets.
-            asset_group = StaticAssetLoader._cache.get(asset, {}).get(type)
-            if asset_group:
-                asset_objs.extend(asset_group.assets)
+            asset_namespace = StaticAssetLoader._cache.get(asset)
+            if asset_namespace is not None:
+                asset_group = asset_namespace.get(type)
+                if asset_group is not None:
+                    asset_objs.extend(asset_group.assets)
             else:
-                asset_objs.append(StaticAsset(script_path))
+                asset_objs.append(StaticAsset(asset))
         return asset_objs
     
     @staticmethod
