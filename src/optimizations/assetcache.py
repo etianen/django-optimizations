@@ -8,7 +8,7 @@ A classic use of an asset cache is to copy static files from a server with
 a short expiry header to a server with an extremely long expiry header.
 """
 
-import hashlib, os.path
+import hashlib, os.path, glob
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
@@ -116,12 +116,28 @@ class StaticAsset(Asset):
     def get_name(self):
         """Returns the name of this static asset."""
         return self._name
+    
+    @staticmethod
+    def get_static_path(name):
+        """Returns the full static path of the given name."""
+        if settings.DEBUG:
+            path = find_static_path(name)
+        else:
+            path = os.path.join(settings.STATIC_ROOT, name)
+        return os.path.abspath(path)
+        
+    @staticmethod
+    def scan_dir(dirname, pattern="*"):
+        """Scans the given directory, returning a list of static assets that match the given pattern."""
+        script_path = StaticAsset.get_static_path(dirname)
+        return [
+            StaticAsset(os.path.join(dirname, os.path.relpath(path, script_path)))
+            for path in glob.iglob(os.path.join(script_path, pattern))
+        ]
         
     def get_path(self):
         """Returns the path of this static asset."""
-        if settings.DEBUG:
-            return find_static_path(self._name)
-        return os.path.join(settings.STATIC_ROOT, self._name)
+        return StaticAsset.get_static_path(self._name)
         
     def get_url(self):
         """Returns the URL of this static asset."""

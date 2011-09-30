@@ -1,6 +1,6 @@
 """A cache of javascipt files, optionally compressed."""
 
-import httplib, logging, os.path, glob
+import httplib, logging, os.path
 from contextlib import closing
 
 from django.core.files.base import ContentFile
@@ -147,18 +147,10 @@ class JavascriptCache(object):
             asset_group = getattr(settings, "ASSETS", {}).get(asset)
             if asset_group:
                 # Process asset lists.
-                asset_objs.extend(AdaptiveAsset(script) for script in asset_group.get("scripts", ()))
+                asset_objs.extend(StaticAsset(script) for script in asset_group.get("scripts", ()))
                 # Process asset dirs.
                 script_dir = asset_group.get("script_dir")
-                if script_dir:
-                    if settings.DEBUG:
-                        script_path = find_static_path(script_dir)
-                    else:
-                        script_path = os.path.join(settings.STATIC_ROOT, script_dir)
-                    asset_objs.extend(
-                        StaticAsset(os.path.join(script_dir, os.path.relpath(path, script_path)))
-                        for path in glob.iglob(os.path.join(script_path, "*.js"))
-                    )
+                asset_objs.extend(StaticAsset.scan_dir(script_dir, "*.js"))
             else:
                 asset_objs.append(StaticAsset(script_path))
         return [AdaptiveAsset(asset) for asset in asset_objs]
