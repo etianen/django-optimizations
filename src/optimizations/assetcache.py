@@ -195,10 +195,10 @@ class StaticAssetLoader(object):
         # Scan the directory.
         root_path = StaticAsset.get_static_path(dirname)
         pattern = pattern or "*." + type
-        asset_names.extend(
-            os.path.join(dirname, os.path.relpath(path, root_path))
-            for path in glob.iglob(os.path.join(root_path, pattern))
-        )
+        for path in glob.iglob(os.path.join(root_path, pattern)):
+            asset_name = os.path.join(dirname, os.path.relpath(path, root_path))
+            if not asset_name in asset_names:
+                asset_names.append(asset_name)
         # Create the assets.
         self.assets = [StaticAsset(asset_name) for asset_name in asset_names]
         
