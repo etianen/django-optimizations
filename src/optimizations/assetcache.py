@@ -8,7 +8,7 @@ A classic use of an asset cache is to copy static files from a server with
 a short expiry header to a server with an extremely long expiry header.
 """
 
-import hashlib, os.path, glob
+import hashlib, os.path, glob, fnmatch
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
@@ -182,7 +182,7 @@ class StaticAssetLoader(object):
             for type, config in types.iteritems():
                 type_cache[type] = StaticAssetLoader(type, **config)
     
-    def __init__(self, type, dirname="", files=(), pattern=None):
+    def __init__(self, type, dirname="", files=(), pattern=None, exclude=None):
         """Initializes the static asset loader."""
         self.type = type
         self._dirname = dirname
@@ -196,7 +196,10 @@ class StaticAssetLoader(object):
         root_path = StaticAsset.get_static_path(dirname)
         pattern = pattern or "*." + type
         for path in glob.iglob(os.path.join(root_path, pattern)):
-            asset_name = os.path.join(dirname, os.path.relpath(path, root_path))
+            asset_rel_name = os.path.relpath(path, root_path)
+            if exclude and fnmatch.fnmatch(asset_rel_name, exclude):
+                continue
+            asset_name = os.path.join(dirname, asset_rel_name)
             if not asset_name in asset_names:
                 asset_names.append(asset_name)
         # Create the assets.
