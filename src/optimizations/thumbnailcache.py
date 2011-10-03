@@ -26,6 +26,7 @@ class ThumbnailAsset(Asset):
         """Returns the filesystem path of this asset."""
         return self._asset.get_path()
     
+    # TODO: If the width and height are the same as the source image, don't add them.
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(ThumbnailAsset, self).get_id_params()

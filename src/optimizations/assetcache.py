@@ -341,20 +341,20 @@ class AssetCache(object):
             self._name_cache[asset_id] = name
         return name
         
-    def get_path(self, asset):
+    def get_path(self, asset, force_save=(not settings.DEBUG)):
         """Returns the cached path of the given asset."""
         asset = AdaptiveAsset(asset)
-        if settings.DEBUG:
+        if not force_save:
             try:
                 return asset.get_path()
             except NotImplementedError:
                 pass
         return self._storage.path(self.get_name(asset))
         
-    def get_url(self, asset):
+    def get_url(self, asset, force_save=(not settings.DEBUG)):
         """Returns the cached url of the given asset."""
         asset = AdaptiveAsset(asset)
-        if settings.DEBUG:
+        if not force_save:
             try:
                 return asset.get_url()
             except NotImplementedError:

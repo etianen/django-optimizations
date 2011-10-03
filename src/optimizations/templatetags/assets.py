@@ -6,6 +6,7 @@ from django.utils.html import escape, escapejs
 from optimizations.assetcache import StaticAssetLoader, default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
 from optimizations.javascriptcache import default_javascript_cache
+from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import parameter_tag
 
 
@@ -99,3 +100,42 @@ def script(src="default"):
     """Renders one or more script tags."""
     assets = StaticAssetLoader.load("js", src)
     return MultiScriptRenderer(default_javascript_cache.get_urls(assets))
+    
+    
+class StylesheetRenderer(object):
+
+    """Renders a stylesheet tag."""
+
+    def __init__(self, url):
+        """Initializes the stylesheet renderer."""
+        self.url = url
+        
+    def __unicode__(self):
+        """Renders the script tags."""
+        return template.loader.render_to_string("assets/stylesheet.html", {
+            "url": self.url,
+        })
+        
+        
+class MultiStylesheetRenderer(object):
+
+    """Renders multiple stylesheet tags."""
+    
+    def __init__(self, urls):
+        """Initializes the multi stylesheet renderer."""
+        self.urls = urls
+        
+    def __iter__(self):
+        """Iterates over the renderer's stylesheet files."""
+        return (StylesheetRenderer(url) for url in self.urls)
+        
+    def __unicode__(self):
+        """Renders all the stylesheet tags."""
+        return u"".join(unicode(stylesheet) for stylesheet in self)
+    
+    
+@parameter_tag(register)
+def stylesheet(src="default"):
+    """Renders one or more stylesheet tags."""
+    assets = StaticAssetLoader.load("css", src)
+    return MultiStylesheetRenderer(default_stylesheet_cache.get_urls(assets))
