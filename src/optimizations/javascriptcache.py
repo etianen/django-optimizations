@@ -3,14 +3,13 @@
 import httplib, logging, os.path
 from contextlib import closing
 
-from django.core.files.base import ContentFile
 from django.conf import settings
-from django.core.mail import mail_admins
+from django.core.files.base import ContentFile
 from django.utils.http import urlencode
 from django.utils import simplejson as json
 from django.contrib.staticfiles.finders import find as find_static_path
 
-from optimizations.assetcache import Asset, AdaptiveAsset, default_asset_cache, StaticAsset
+from optimizations.assetcache import default_asset_cache, GroupedAsset
 
 
 logger = logging.getLogger("optimizations.javascript")
@@ -21,69 +20,32 @@ class JavascriptError(Exception):
     """Something went wrong with javascript compilation."""
 
 
-class JavascriptAsset(Asset):
+class JavascriptAsset(GroupedAsset):
 
     """An asset that represents one or more javascript files."""
     
+    join_str = ";"
+    
     def __init__(self, assets, compile, fail_silently):
         """Initializes the asset."""
-        self._assets = assets
+        super(JavascriptAsset, self).__init__(assets)
         self._compile = compile
         self._fail_silently = fail_silently
     
-    def get_name(self):
-        """Returns the name of this asset."""
-        return self._assets[0].get_name()
-    
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
-        params = {
-            "compile": self._compile,
-        }
-        urls = []
-        paths = []
-        # Add in the assets.
-        for asset in self._assets:
-            try:
-                urls.append(asset.get_url())
-            except NotImplementedError:
-                pass
-            try:
-                paths.append(asset.get_path())
-            except NotImplementedError:
-                pass
-        # Apply the urls and paths.
-        if urls:
-            params["urls"] = u":".join(urls)
-        if paths:
-            params["paths"] = u":".join(paths)
-        # All done.
+        params = super(JavascriptAsset, self).get_id_params()
+        params["compile"] = self._compile
         return params
-        
-    def get_mtime(self):
-        """Returns the modified time for this asset."""
-        return max(asset.get_mtime() for asset in self._assets)
-    
-    def _get_js_code(self):
-        """Loads all the js code."""
-        js_code_parts = []
-        for asset in self._assets:
-            with closing(asset.open()) as handle:
-                js_code_parts.append(handle.read())
-        return ";".join(js_code_parts)
-    
-    def open(self):
-        """Returns an open file pointer."""
-        return ContentFile(self._get_js_code())
-    
+            
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compile:
-            js_code = self._get_js_code().strip()
+            js_code = self._get_contents().strip()
             if js_code:
                 # Format a request to the Google closure compiler service.
                 params = [
-                    ("js_code", self._get_js_code()),
+                    ("js_code", js_code),
                     ("compilation_level", "SIMPLE_OPTIMIZATIONS"),
                     ("output_format", "json"),
                     ("output_info", "compiled_code"),

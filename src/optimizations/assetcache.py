@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
 from django.contrib.staticfiles.finders import find as find_static_path
-from django.core.files.base import File
+from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
 
@@ -244,6 +244,53 @@ class FileAsset(Asset):
         """Opens this asset."""
         self._file.open("rb")
         return self._file
+        
+        
+class GroupedAsset(Asset):
+
+    """An asset composed of multiple sub-assets."""
+    
+    join_str = ""
+    
+    def __init__(self, assets):
+        """Initializes the grouped asset."""
+        self._assets = assets
+        
+    def get_name(self):
+        """Returns the name of this asset."""
+        return self._assets[0].get_name()
+    
+    def get_id_params(self):
+        """"Returns the params which should be used to generate the id."""
+        params = {}
+        # Add in the assets.
+        for asset in self._assets:
+            params.update(
+                (u"{n}_{key}".format(
+                    n = n,
+                    key = item[0],
+                ), item[1])
+                for n, item
+                in enumerate(asset._get_and_check_id_params().iteritems())
+            )
+        # All done.
+        return params
+        
+    def get_mtime(self):
+        """Returns the modified time for this asset."""
+        return max(asset.get_mtime() for asset in self._assets)
+    
+    def _get_contents(self):
+        """Loads all the js code."""
+        parts = []
+        for asset in self._assets:
+            with closing(asset.open()) as handle:
+                parts.append(handle.read())
+        return self.join_str.join(parts)
+    
+    def open(self):
+        """Returns an open file pointer."""
+        return ContentFile(self._get_contents())
         
 
 class AdaptiveAsset(Asset):
