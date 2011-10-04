@@ -41,7 +41,12 @@ class JavascriptAsset(GroupedAsset):
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compile:
-            js_code = self.get_contents().strip()
+            js_src_parts = []
+            for asset in self._assets:
+                with closing(asset.open()) as handle:
+                    js_src = handle.read()
+                js_src_parts.append((asset.get_name(), js_src))
+            js_code = self.join_str.join(js_src_part[1] for js_src_part in js_src_parts)
             if js_code:
                 # Format a request to the Google closure compiler service.
                 params = [
@@ -62,7 +67,14 @@ class JavascriptAsset(GroupedAsset):
                 response_data = json.loads(response_str)
                 # Log the errors and warnings.
                 def get_extra(extra):
-                    extra["jslineno"] = extra.pop("lineno")
+                    lineno = extra.pop("lineno")
+                    for name, src in js_src_parts:
+                        lines = len(src.splitlines())
+                        if lineno <= lines:
+                            break
+                        lineno -= lines;
+                    extra["jslineno"] = lineno
+                    extra["jsname"] = name
                     return extra
                 for error in response_data.get("errors", ()):
                     logger.error(error["error"], extra=get_extra(error))
