@@ -8,7 +8,7 @@ A classic use of an asset cache is to copy static files from a server with
 a short expiry header to a server with an extremely long expiry header.
 """
 
-import hashlib, os.path, glob, fnmatch
+import hashlib, os.path, glob, fnmatch, re
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
@@ -81,6 +81,11 @@ class Asset(object):
         """Returns an open File for this asset."""
         return File(open(self.get_path()), "rb")
     
+    def get_contents(self):
+        """Returns the contents of this asset as a string."""
+        with closing(self.open()) as handle:
+            return handle.read()
+    
     def get_hash_params(self):
         """Returns the params which should be used to generate the hash."""
         params = self._get_and_check_id_params()
@@ -109,14 +114,6 @@ class StaticAsset(Asset):
 
     """An asset that wraps a Django static file."""
     
-    def __init__(self, name):
-        """Initializes the static asset."""
-        self._name = name
-        
-    def get_name(self):
-        """Returns the name of this static asset."""
-        return self._name
-    
     @staticmethod
     def get_static_path(name):
         """Returns the full static path of the given name."""
@@ -127,6 +124,84 @@ class StaticAsset(Asset):
         else:
             path = os.path.join(settings.STATIC_ROOT, name)
         return os.path.abspath(path)
+        
+    @staticmethod
+    def load(type, assets="default"):
+        """Resolves the given asset name into a list of static assets."""
+        # Adapt a single asset to a list.
+        if isinstance(assets, (basestring, Asset)):
+            assets = [assets]
+        # Adapt asset names to assets.
+        asset_objs = []
+        for asset in assets:
+            # Leave actual assets as they are.
+            if isinstance(asset, Asset):
+                asset_obs.append(asset)
+            # Convert asset group ids into assets.
+            asset_namespace = StaticAsset._cache.get(asset)
+            if asset_namespace is not None:
+                asset_group = asset_namespace.get(type)
+                if asset_group is not None:
+                    asset_objs.extend(asset_group)
+            else:
+                asset_objs.append(StaticAsset(asset))
+        return asset_objs
+        
+    @staticmethod
+    def get_namespaces():
+        """Returns a list of all namespaces in the static asset loader."""
+        return StaticAsset._cache.keys()
+    
+    @staticmethod
+    def get_urls(type, assets="default"):
+        """Returns a list of cached urls for the given static assets."""
+        return [
+            default_asset_cache.get_url(asset)
+            for asset in StaticAsset.load(type, assets)
+        ]
+    
+    @staticmethod
+    def initialize():
+        """Loads all static assets."""
+        cache = StaticAsset._cache = {}
+        # Loads the assets.
+        def do_load(type, dirname="", files=(), include=None, exclude=None):
+            # Create the loaded list of assets.
+            asset_names = [
+                os.path.join(dirname, file)
+                for file in files
+            ]
+            # Resolve the patterns.
+            def resolve_patterns(patterns, default):
+                if patterns is None:
+                    patterns = default
+                if isinstance(patterns, basestring):
+                    patterns = (patterns,)
+                return [re.compile(fnmatch.translate(pattern), re.IGNORECASE) for pattern in patterns]
+            include = resolve_patterns(include, "*." + type)
+            exclude = resolve_patterns(exclude, ())
+            # Scan the directory.
+            root_path = StaticAsset.get_static_path(dirname)
+            for path in glob.iglob(os.path.join(root_path, "*")):
+                asset_rel_name = os.path.relpath(path, root_path)
+                asset_name = os.path.join(dirname, asset_rel_name)
+                if not asset_name in asset_names and any(p.match(asset_rel_name) for p in include) and not any(p.match(asset_rel_name) for p in exclude):
+                    asset_names.append(asset_name)
+            # Create the assets.
+            return [StaticAsset(asset_name) for asset_name in asset_names]
+        # Load in all namespaces.
+        for namespace, types in getattr(settings, "STATIC_ASSETS", {}).iteritems():
+            type_cache = cache[namespace] = {}
+            for type, config in types.iteritems():
+                type_cache[type] = do_load(type, **config)
+    
+    def __init__(self, name):
+        """Initializes the static asset."""
+        self._name = name
+        
+    def get_name(self):
+        """Returns the name of this static asset."""
+        return self._name
         
     def get_path(self):
         """Returns the path of this static asset."""
@@ -141,73 +216,8 @@ class StaticAsset(Asset):
         return os.path.getmtime(self.get_path())
         
         
-class StaticAssetLoader(object):
-    
-    """A loader of static assets."""
-    
-    @staticmethod
-    def load(type, assets):
-        """Resolves the given asset name into a list of static assets."""
-        # Adapt a single asset to a list.
-        if isinstance(assets, (basestring, Asset)):
-            assets = [assets]
-        # Adapt asset names to assets.
-        asset_objs = []
-        for asset in assets:
-            # Leave actual assets as they are.
-            if isinstance(asset, Asset):
-                asset_obs.append(asset)
-            # Convert asset group ids into assets.
-            asset_namespace = StaticAssetLoader._cache.get(asset)
-            if asset_namespace is not None:
-                asset_group = asset_namespace.get(type)
-                if asset_group is not None:
-                    asset_objs.extend(asset_group.assets)
-            else:
-                asset_objs.append(StaticAsset(asset))
-        return asset_objs
-    
-    @staticmethod
-    def get_namespaces():
-        """Returns a list of all namespaces in the static asset loader."""
-        return StaticAssetLoader._cache.keys()
-    
-    @staticmethod
-    def initialize():
-        """Loads all static assets."""
-        cache = StaticAssetLoader._cache = {}
-        # Load in all namespaces.
-        for namespace, types in getattr(settings, "STATIC_ASSETS", {}).iteritems():
-            type_cache = cache[namespace] = {}
-            for type, config in types.iteritems():
-                type_cache[type] = StaticAssetLoader(type, **config)
-    
-    def __init__(self, type, dirname="", files=(), pattern=None, exclude=None):
-        """Initializes the static asset loader."""
-        self.type = type
-        self._dirname = dirname
-        self._files = files
-        # Create the loaded list of assets.
-        asset_names = [
-            os.path.join(dirname, file)
-            for file in files
-        ]
-        # Scan the directory.
-        root_path = StaticAsset.get_static_path(dirname)
-        pattern = pattern or "*." + type
-        for path in glob.iglob(os.path.join(root_path, pattern)):
-            asset_rel_name = os.path.relpath(path, root_path)
-            if exclude and fnmatch.fnmatch(asset_rel_name, exclude):
-                continue
-            asset_name = os.path.join(dirname, asset_rel_name)
-            if not asset_name in asset_names:
-                asset_names.append(asset_name)
-        # Create the assets.
-        self.assets = [StaticAsset(asset_name) for asset_name in asset_names]
-        
-        
 # Create all available asset loaders.
-StaticAssetLoader.initialize()
+StaticAsset.initialize()
         
         
 class FileAsset(Asset):
@@ -283,17 +293,13 @@ class GroupedAsset(Asset):
         """Returns the modified time for this asset."""
         return max(asset.get_mtime() for asset in self._assets)
     
-    def _get_contents(self):
+    def get_contents(self):
         """Loads all the js code."""
-        parts = []
-        for asset in self._assets:
-            with closing(asset.open()) as handle:
-                parts.append(handle.read())
-        return self.join_str.join(parts)
+        return self.join_str.join(asset.get_contents() for asset in self._assets)
     
     def open(self):
         """Returns an open file pointer."""
-        return ContentFile(self._get_contents())
+        return ContentFile(self.get_contents())
         
 
 class AdaptiveAsset(Asset):

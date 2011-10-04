@@ -5,7 +5,7 @@ import logging
 from django.core.management.base import NoArgsCommand
 from django.conf import settings
 
-from optimizations.assetcache import StaticAssetLoader
+from optimizations.assetcache import StaticAsset
 from optimizations.stylesheetcache import default_stylesheet_cache
 
 
@@ -30,8 +30,8 @@ class Command(NoArgsCommand):
             handler.setFormatter(logging.Formatter(u"Line %(jslineno)s: %(error)s"))
             logger.addHandler(handler)
         # Run the compiler.
-        for namespace in StaticAssetLoader.get_namespaces():
-            assets = StaticAssetLoader.load("css", namespace);
+        for namespace in StaticAsset.get_namespaces():
+            assets = StaticAsset.load("css", namespace);
             default_stylesheet_cache.get_urls(assets, compile=True, force_save=True)
             if verbosity >= 1:
                 self.stdout.write("Compiled css in namespace {!r}.\n".format(namespace))

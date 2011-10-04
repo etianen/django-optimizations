@@ -41,7 +41,7 @@ class JavascriptAsset(GroupedAsset):
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compile:
-            js_code = self._get_contents().strip()
+            js_code = self.get_contents().strip()
             if js_code:
                 # Format a request to the Google closure compiler service.
                 params = [
