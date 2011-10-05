@@ -34,4 +34,4 @@ class Command(NoArgsCommand):
             assets = StaticAsset.load("css", namespace);
             default_stylesheet_cache.get_urls(assets, compile=True, force_save=True)
             if verbosity >= 1:
-                self.stdout.write("Compiled css in namespace {!r}.\n".format(namespace))
+                self.stdout.write("Compiled css in namespace {namespace!r}.\n".format(namespace=namespace))

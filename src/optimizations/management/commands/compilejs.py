@@ -39,4 +39,4 @@ class Command(NoArgsCommand):
                 pass
             else:
                 if verbosity >= 1:
-                    self.stdout.write("Compiled javascript in namespace {!r}.\n".format(namespace))
+                    self.stdout.write("Compiled javascript in namespace {namespace!r}.\n".format(namespace=namespace))
