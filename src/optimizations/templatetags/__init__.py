@@ -51,11 +51,11 @@ class ParameterNode(template.Node):
         """Renders the parameter node."""
         # Resolve all variables.
         args = [arg.resolve(context) for arg in self._args]
-        kwargs = {
-            name: value.resolve(context)
+        kwargs = dict(
+            (name, value.resolve(context))
             for name, value
             in self._kwargs.iteritems()
-        }
+        )
         # Add in the context.
         if self._takes_context:
             args.insert(0, context)
