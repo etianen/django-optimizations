@@ -4,7 +4,7 @@ from django import template
 from django.utils.html import escape, escapejs
 
 from optimizations.assetcache import StaticAsset, default_asset_cache
-from optimizations.thumbnailcache import default_thumbnail_cache
+from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import parameter_tag
@@ -53,12 +53,13 @@ class ThumbnailRenderer(object):
     
 
 @parameter_tag(register)
-def img(src, width=None, height=None, alt="", **attrs):
+def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
     """Renders an image tag."""
     thumbnail = default_thumbnail_cache.get_thumbnail(
         src,
         width = width,
         height = height,
+        method = method,
     )
     return ThumbnailRenderer(thumbnail, alt, attrs)
     

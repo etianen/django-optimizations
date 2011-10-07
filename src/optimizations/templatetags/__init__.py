@@ -9,7 +9,7 @@ from django import template
 RE_KWARG = re.compile(u"([a-z][a-z0-9_]*)=(.*)", re.IGNORECASE)
 
 
-def parse_token(token):
+def parse_token(parser, token):
     """Parses the given token into a tuple of (args, kwargs and alias)."""
     parts = token.split_contents()[1:]
     args = []
@@ -25,11 +25,11 @@ def parse_token(token):
     for part in parts_iter:
         kwarg_match = RE_KWARG.match(part)
         if kwarg_match:
-            kwargs[kwarg_match.group(1)] = template.Variable(kwarg_match.group(2))
+            kwargs[kwarg_match.group(1)] = parser.compile_filter(kwarg_match.group(2))
         else:
             if kwargs:
                 raise template.TemplateSyntaxError("Keyword arguments cannot follow position arguments")
-            args.append(template.Variable(part))
+            args.append(parser.compile_filter(part))
     # All done!
     return args, kwargs, alias
 
@@ -79,7 +79,7 @@ def parameter_tag(register, takes_context=False, takes_body=False):
         @wraps(func)
         def compiler(parser, token):
             # Parse the token.
-            args, kwargs, alias = parse_token(token)
+            args, kwargs, alias = parse_token(parser, token)
             # Parse the body.
             if takes_body:
                 end_tag_name = u"end{name}".format(name=func.__name__)
