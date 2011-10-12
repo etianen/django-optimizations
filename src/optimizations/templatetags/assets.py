@@ -107,14 +107,16 @@ class StylesheetRenderer(object):
 
     """Renders a stylesheet tag."""
 
-    def __init__(self, url):
+    def __init__(self, url, attrs):
         """Initializes the stylesheet renderer."""
         self.url = url
+        self.attrs = attrs
         
     def __unicode__(self):
         """Renders the script tags."""
         return template.loader.render_to_string("assets/stylesheet.html", {
             "url": self.url,
+            "attrs": self.attrs,
         })
         
         
@@ -122,13 +124,14 @@ class MultiStylesheetRenderer(object):
 
     """Renders multiple stylesheet tags."""
     
-    def __init__(self, urls):
+    def __init__(self, urls, attrs):
         """Initializes the multi stylesheet renderer."""
         self.urls = urls
+        self.attrs = attrs
         
     def __iter__(self):
         """Iterates over the renderer's stylesheet files."""
-        return (StylesheetRenderer(url) for url in self.urls)
+        return (StylesheetRenderer(url, self.attrs) for url in self.urls)
         
     def __unicode__(self):
         """Renders all the stylesheet tags."""
@@ -136,7 +139,7 @@ class MultiStylesheetRenderer(object):
     
     
 @parameter_tag(register)
-def stylesheet(src="default"):
+def stylesheet(src="default", **attrs):
     """Renders one or more stylesheet tags."""
     assets = StaticAsset.load("css", src)
-    return MultiStylesheetRenderer(default_stylesheet_cache.get_urls(assets))
+    return MultiStylesheetRenderer(default_stylesheet_cache.get_urls(assets), attrs)

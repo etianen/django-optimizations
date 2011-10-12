@@ -136,7 +136,7 @@ class StaticAsset(Asset):
         for asset in assets:
             # Leave actual assets as they are.
             if isinstance(asset, Asset):
-                asset_obs.append(asset)
+                asset_objs.append(asset)
             # Convert asset group ids into assets.
             asset_namespace = StaticAsset._cache.get(asset)
             if asset_namespace is not None:

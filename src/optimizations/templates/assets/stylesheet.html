@@ -1,1 +1,1 @@
-<link rel="stylesheet" href="{{url}}">
+<link rel="stylesheet" href="{{url}}"{% for name, value in attrs.items %} {{name}}="{{value}}"{% endfor %}>
