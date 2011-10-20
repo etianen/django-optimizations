@@ -3,7 +3,6 @@
 import logging
 
 from django.core.management.base import NoArgsCommand
-from django.conf import settings
 
 from optimizations.assetcache import StaticAsset
 from optimizations.javascriptcache import default_javascript_cache, JavascriptError

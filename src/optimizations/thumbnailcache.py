@@ -1,6 +1,6 @@
 """A cache for thumbnailed images."""
 
-import hashlib, os.path, os, collections, sys
+import os, collections, sys
 
 from PIL import Image
 
@@ -226,8 +226,8 @@ class ThumbnailCache(object):
         try:
             method = _methods[method]
         except KeyError:
-            raise ValueError("{name} is not a valid thumbnail method. Should be one of {methods}.".format(
-                name = name,
+            raise ValueError("{method} is not a valid thumbnail method. Should be one of {methods}.".format(
+                method = method,
                 method = ", ".join(_methods.iterkeys())
             ))
         requested_size = Size(width, height)

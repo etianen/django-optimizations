@@ -1,13 +1,12 @@
 """A cache of javascipt files, optionally compressed."""
 
-import httplib, logging, os.path
+import httplib, logging
 from contextlib import closing
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils.http import urlencode
 from django.utils import simplejson as json
-from django.contrib.staticfiles.finders import find as find_static_path
 
 from optimizations.assetcache import default_asset_cache, GroupedAsset
 
