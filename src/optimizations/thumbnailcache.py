@@ -228,7 +228,7 @@ class ThumbnailCache(object):
         except KeyError:
             raise ValueError("{method} is not a valid thumbnail method. Should be one of {methods}.".format(
                 method = method,
-                method = ", ".join(_methods.iterkeys())
+                methods = ", ".join(_methods.iterkeys())
             ))
         requested_size = Size(width, height)
         # Adapt the asset.
