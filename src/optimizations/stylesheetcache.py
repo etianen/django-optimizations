@@ -13,9 +13,9 @@ logger = logging.getLogger("optimizations.stylesheet")
 
 
 RE_URLS = (
-    re.compile(u"url\(([^\)]+)\)", re.IGNORECASE),
     re.compile(u"url\('([^']+)'\)", re.IGNORECASE),
-    re.compile(u"url\(\"([^\"]+)'\"\)", re.IGNORECASE),
+    re.compile(u"url\(\"([^\"]+)\"\)", re.IGNORECASE),
+    re.compile(u"url\(([^\)]+)\)", re.IGNORECASE),
 )
 
 RE_WHITESPACE = re.compile(u"\s{2,}")
@@ -58,9 +58,12 @@ class StylesheetAsset(GroupedAsset):
                 host_url = asset.get_url()
                 for re_url in RE_URLS:
                     def do_url_replacement(match):
-                        url = match.group(1).strip().replace(u" ", "%20")
+                        url = match.group(1).strip()
                         # Resolve relative URLs.
                         url = urlparse.urljoin(host_url, url)
+                        # Strip off query and fragment.
+                        url_parts = urlparse.urlparse(url)
+                        url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
                         # Compile static urls.
                         if url.startswith(settings.STATIC_URL):
                             url = default_asset_cache.get_url(url[len(settings.STATIC_URL):], force_save=True)
