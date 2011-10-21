@@ -26,7 +26,6 @@ class Command(NoArgsCommand):
                 handler.setLevel(logging.WARNING)
             elif verbosity == 1:
                 handler.setLevel(logging.ERROR)
-            handler.setFormatter(logging.Formatter(u"File \"%(jsname)s\", line %(jslineno)s: %(error)s"))
             logger.addHandler(handler)
         # Run the compiler.
         for namespace in StaticAsset.get_namespaces():
