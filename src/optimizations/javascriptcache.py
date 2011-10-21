@@ -1,13 +1,11 @@
 """A cache of javascipt files, optionally compressed."""
 
-import httplib, logging
-from contextlib import closing
+import logging, subprocess, os.path
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.utils.http import urlencode
-from django.utils import simplejson as json
 
+import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
 
 
@@ -40,57 +38,20 @@ class JavascriptAsset(GroupedAsset):
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compile:
-            js_src_parts = []
-            for asset in self._assets:
-                with closing(asset.open()) as handle:
-                    js_src = handle.read()
-                js_src_parts.append((asset.get_name(), js_src))
-            js_code = self.join_str.join(js_src_part[1] for js_src_part in js_src_parts)
-            if js_code:
-                # Format a request to the Google closure compiler service.
-                params = [
-                    ("js_code", js_code),
-                    ("compilation_level", "SIMPLE_OPTIMIZATIONS"),
-                    ("output_format", "json"),
-                    ("output_info", "compiled_code"),
-                    ("output_info", "errors"),
-                ]
-                post_data = urlencode(params, doseq=True)
-                # Send the request.
-                with closing(httplib.HTTPConnection("closure-compiler.appspot.com", timeout=10)) as connection:
-                    connection.request("POST", "/compile", post_data, {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                    })
-                    response = connection.getresponse()
-                    response_str = response.read()
-                response_data = json.loads(response_str)
-                # Log the errors and warnings.
-                def get_extra(extra):
-                    lineno = extra.pop("lineno")
-                    for name, src in js_src_parts:
-                        lines = len(src.splitlines())
-                        if lineno <= lines:
-                            break
-                        lineno -= lines;
-                    extra["jslineno"] = lineno
-                    extra["jsname"] = name
-                    return extra
-                for error in response_data.get("errors", ()):
-                    logger.error(error["error"], extra=get_extra(error))
-                for warning in response_data.get("warnings", ()):
-                    logger.warning(warning["warning"], extra=get_extra(warning))
-                # Save the compressed code, if available.
-                if len(response_data.get("errors", ())) > 0:
-                    if self._fail_silently:
-                        compressed_js_code = js_code
-                    else:
-                        raise JavascriptError(response_data["errors"][0]["error"])
-                else:
-                    compressed_js_code = response_data["compiledCode"].decode("ascii").encode("utf-8")
-            else:
-                compressed_js_code = js_code
-            # Save the code.
-            file = ContentFile(compressed_js_code)
+            compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
+            process = subprocess.Popen(
+                ("java", "-jar", compressor_path, "--type", "js", "--charset", "utf-8", "-v"),
+                stdin = subprocess.PIPE,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+            )
+            stdoutdata, stderrdata = process.communicate(self.get_contents())
+            # Check it all worked.
+            if process.returncode != 0:
+                logger.error(stderrdata)
+                raise JavascriptError("Error while compiling javascript.")
+            # Write the output.
+            file = ContentFile(stdoutdata)
             storage.save(name, file)
         else:
             # Just save the joined code.
