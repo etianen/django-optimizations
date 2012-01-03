@@ -63,10 +63,11 @@ class StylesheetAsset(GroupedAsset):
                         url = urlparse.urljoin(host_url, url)
                         # Strip off query and fragment.
                         url_parts = urlparse.urlparse(url)
-                        url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
                         # Compile static urls.
                         if url.startswith(settings.STATIC_URL):
-                            url = default_asset_cache.get_url(url[len(settings.STATIC_URL):], force_save=True)
+                            simple_url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
+                            static_url = default_asset_cache.get_url(simple_url[len(settings.STATIC_URL):], force_save=True)
+                            url = urlparse.urlunparse(urlparse.urlparse(static_url)[:3] + url_parts[3:])
                         return u"url({url})".format(
                             url = url,
                         )
