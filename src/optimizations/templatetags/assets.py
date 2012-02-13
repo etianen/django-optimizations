@@ -3,7 +3,7 @@
 from django import template
 from django.utils.html import escape, escapejs
 
-from optimizations.assetcache import StaticAsset, default_asset_cache
+from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
@@ -32,12 +32,11 @@ class ThumbnailRenderer(object):
 
     """Renders a thumbnail object."""
     
-    def __init__(self, thumbnail, alt, attrs):
+    def __init__(self, url, width, height, alt, attrs):
         """Initializes the renderer."""
-        self._thumbnail = thumbnail
-        self.width = thumbnail.width
-        self.height = thumbnail.height
-        self.url = thumbnail.url
+        self.url = url
+        self.width = width
+        self.height = height
         self.alt = alt
         self.attrs = attrs
         
@@ -55,13 +54,18 @@ class ThumbnailRenderer(object):
 @parameter_tag(register)
 def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
     """Renders an image tag."""
-    thumbnail = default_thumbnail_cache.get_thumbnail(
-        src,
-        width = width,
-        height = height,
-        method = method,
-    )
-    return ThumbnailRenderer(thumbnail, alt, attrs)
+    try:
+        thumbnail = default_thumbnail_cache.get_thumbnail(
+            src,
+            width = width,
+            height = height,
+            method = method,
+        )
+    except IOError:
+        asset = AdaptiveAsset(src)
+        return ThumbnailRenderer(asset.get_url(), width or "", height or "", alt, attrs)
+    else:
+        return ThumbnailRenderer(thumbnail.url, thumbnail.width, thumbnail.height, alt, attrs)
     
     
 class ScriptRenderer(object):
