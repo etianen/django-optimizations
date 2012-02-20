@@ -182,7 +182,7 @@ class StaticAsset(Asset):
             exclude = resolve_patterns(exclude, ())
             # Scan the directory.
             root_path = StaticAsset.get_static_path(dirname)
-            for path in glob.iglob(os.path.join(root_path, "*")):
+            for path in sorted(glob.iglob(os.path.join(root_path, "*"))):
                 asset_rel_name = os.path.relpath(path, root_path)
                 asset_name = os.path.join(dirname, asset_rel_name)
                 if not asset_name in asset_names and any(p.match(asset_rel_name) for p in include) and not any(p.match(asset_rel_name) for p in exclude):
