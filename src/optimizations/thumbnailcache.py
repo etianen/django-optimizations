@@ -124,14 +124,13 @@ class ThumbnailAsset(Asset):
     
     """An asset representing a thumbnailed file."""
     
-    def __init__(self, asset, opener, original_size, display_size, data_size, method):
+    def __init__(self, asset, width, height, method):
         """Initializes the asset."""
         self._asset = asset
-        self._opener = opener
-        self._original_size = original_size
-        self._display_size = display_size
-        self._data_size = data_size
+        self._width = width
+        self._height = height
         self._method = method
+        self._opener = image_opener(self._asset)
     
     def get_name(self):
         """Returns the name of this asset."""
@@ -144,38 +143,64 @@ class ThumbnailAsset(Asset):
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(ThumbnailAsset, self).get_id_params()
-        params["width"] = self._display_size.width
-        params["height"] = self._display_size.height
+        params["width"] = self._width is None and -1 or self._width
+        params["height"] = self._height is None and -1 or self._height
         params["method"] = self._method.hash_key
         return params
-        
-    def save(self, storage, name):
+    
+    @cached_property
+    def _image_data(self):
+        """Returns the image data used by this thumbnail asset."""
+        return next(self._opener)
+    
+    def get_save_meta(self):
+        """Returns the meta parameters to associate with the asset in the asset cache."""
+        image_data = self._image_data
+        method = self._method
+        requested_size = Size(self._width, self._height)
+        original_size = Size(*image_data.size)
+        # Calculate the final width and height of the thumbnail.
+        display_size = method.get_display_size(original_size, requested_size)
+        return {
+            "size": display_size 
+        }
+    
+    def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
-        image_data = next(self._opener)
-        # Use efficient image loading.
-        image_data.draft(None, self._data_size)
-        # Resize the image data.
-        try:
-            image_data = self._method.do_resize(image_data, self._original_size, self._display_size, self._data_size)
-        except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
-            raise IOError(str(ex))
-        # If the storage has a path, then save it efficiently.
-        thumbnail_path = storage.path(name)
-        try:
-            os.makedirs(os.path.dirname(thumbnail_path))
-        except OSError:
-            pass
-        try:
-            image_data.save(thumbnail_path)
-        except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
+        image_data = self._image_data
+        method = self._method
+        # Calculate sizes.
+        display_size = meta["size"]
+        original_size = Size(*image_data.size)
+        data_size = method.get_data_size(display_size, display_size.intersect(original_size))
+        # Check whether we need to make a thumbnail.
+        if data_size == original_size:
+            super(ThumbnailAsset, self).save(storage, name, meta)
+        else:
+            # Use efficient image loading.
+            image_data.draft(None, data_size)
+            # Resize the image data.
             try:
+                image_data = method.do_resize(image_data, original_size, display_size, data_size)
+            except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
                 raise IOError(str(ex))
-            finally:
-                # Remove an incomplete file, if present.
+            # If the storage has a path, then save it efficiently.
+            thumbnail_path = storage.path(name)
+            try:
+                os.makedirs(os.path.dirname(thumbnail_path))
+            except OSError:
+                pass
+            try:
+                image_data.save(thumbnail_path)
+            except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
                 try:
-                    os.unlink(thumbnail_path)
-                except:
-                    pass
+                    raise IOError(str(ex))
+                finally:
+                    # Remove an incomplete file, if present.
+                    try:
+                        os.unlink(thumbnail_path)
+                    except:
+                        pass
                             
         
 def image_opener(asset):
@@ -189,23 +214,35 @@ class Thumbnail(object):
 
     """A generated thumbnail."""
     
-    def __init__(self, asset_cache, asset, width, height):
+    def __init__(self, asset_cache, asset):
         """Initializes the thumbnail."""
         self._asset_cache = asset_cache
         self._asset = asset
         self.name = asset.get_name()
-        self.width = width
-        self.height = height
-        
+    
     @cached_property
+    def _asset_name_and_meta(self):
+        return self._asset_cache.get_name_and_meta(self._asset)
+        
+    @property
+    def width(self):
+        """The width of the thumbnail."""
+        return self._asset_name_and_meta[1]["size"][0]
+    
+    @property
+    def height(self):
+        """The width of the thumbnail."""
+        return self._asset_name_and_meta[1]["size"][1]
+        
+    @property
     def url(self):
         """The URL of the thumbnail."""
-        return self._asset_cache.get_url(self._asset)
+        return self._asset_cache._storage.get_url(self._asset_name_and_meta[0])
         
-    @cached_property
+    @property
     def path(self):
         """The path of the thumbnail."""
-        return self._asset_cache.get_path(self._asset)
+        return self._asset_cache._storage.get_path(self._asset_name_and_meta[0])
 
 
 class ThumbnailCache(object):
@@ -215,7 +252,6 @@ class ThumbnailCache(object):
     def __init__(self, asset_cache=default_asset_cache):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
-        self._size_cache = {}
         
     def get_thumbnail(self, asset, width=None, height=None, method=PROPORTIONAL):
         """
@@ -224,6 +260,7 @@ class ThumbnailCache(object):
         Either or both of width and height may be None, in which case the
         image's original size will be used.
         """
+        # Lookup the method.
         try:
             method = _methods[method]
         except KeyError:
@@ -231,27 +268,10 @@ class ThumbnailCache(object):
                 method = method,
                 methods = ", ".join(_methods.iterkeys())
             ))
-        requested_size = Size(width, height)
         # Adapt the asset.
         asset = AdaptiveAsset(asset)
-        # Get the opener.
-        asset_id = asset.get_id()
-        opener = image_opener(asset)
-        # Get the image width and height.
-        original_size = self._size_cache.get(asset_id)
-        if original_size is None:
-            original_size = Size(*next(opener).size)
-            self._size_cache[asset_id] = original_size
-        # Calculate the final width and height of the thumbnail.
-        display_size = method.get_display_size(original_size, requested_size)
-        data_size = method.get_data_size(display_size, display_size.intersect(original_size))
-        # Check whether we need to make a thumbnail.
-        if data_size == original_size:
-            thumbnail_asset = asset
-        else:
-            thumbnail_asset = ThumbnailAsset(asset, opener, original_size, display_size, data_size, method)
-        # Get the cached thumbnail.
-        return Thumbnail(self._asset_cache, thumbnail_asset, display_size.width, display_size.height)
+        # Create the thumbnail.
+        return Thumbnail(self._asset_cache, ThumbnailAsset(asset, width, height, method))
         
         
 # The default thumbnail cache.

@@ -44,7 +44,7 @@ class StylesheetAsset(GroupedAsset):
         params["compile"] = self._compile
         return params
             
-    def save(self, storage, name):
+    def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
         if self._compile:
             file_parts = []
@@ -95,7 +95,7 @@ class StylesheetAsset(GroupedAsset):
             storage.save(name, file)
         else:
             # Just save the joined code.
-            super(StylesheetAsset, self).save(storage, name)
+            super(StylesheetAsset, self).save(storage, name, meta)
             
             
 class StylesheetCache(object):

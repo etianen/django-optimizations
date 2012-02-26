@@ -35,7 +35,7 @@ class JavascriptAsset(GroupedAsset):
         params["compile"] = self._compile
         return params
             
-    def save(self, storage, name):
+    def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
         if self._compile:
             contents = self.get_contents()
@@ -59,7 +59,7 @@ class JavascriptAsset(GroupedAsset):
             storage.save(name, file)
         else:
             # Just save the joined code.
-            super(JavascriptAsset, self).save(storage, name)
+            super(JavascriptAsset, self).save(storage, name, meta)
             
             
 class JavascriptCache(object):

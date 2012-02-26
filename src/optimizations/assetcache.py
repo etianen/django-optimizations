@@ -113,8 +113,12 @@ class Asset(object):
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
         return hashlib.sha1(freeze_dict(self.get_hash_params())).hexdigest()
+    
+    def get_save_meta(self):
+        """Returns the meta parameters to associate with the asset in the asset cache."""
+        return {}
         
-    def save(self, storage, name):
+    def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
         with closing(self.open()) as handle:
             storage.save(name, handle)
@@ -334,16 +338,16 @@ class AssetCache(object):
         self._storage = storage
         self._prefix = prefix
         try:
-            self._name_cache = get_cache("optimizations.assetcache")
+            self._cache = get_cache("optimizations.assetcache")
         except InvalidCacheBackendError:
-            self._name_cache = default_cache
-        
-    def get_name(self, asset):
-        """Returns the cached name of the given asset."""
+            self._cache = default_cache
+    
+    def get_name_and_meta(self, asset):
+        """Returns the name and associated parameters of an asset."""
         # Get the asset ID.
         asset_cache_key = asset.get_cache_key()
-        name = self._name_cache.get(asset_cache_key)
-        if name is None:
+        name_and_meta = self._cache.get(asset_cache_key)
+        if name_and_meta is None:
             # Generate the name.
             asset_name = asset.get_name()
             asset_hash = asset.get_hash()
@@ -354,12 +358,23 @@ class AssetCache(object):
                 hash = asset_hash[2:],
                 ext = asset_ext,
             )
+            # Save the asset's params.
+            meta = asset.get_save_meta()
             # Save the file to the asset cache.
             if not self._storage.exists(name):
-                asset.save(self._storage, name)
+                asset.save(self._storage, name, meta)
             # Cache the name.
-            self._name_cache.set(asset_cache_key, name)
-        return name
+            name_and_meta = (name, meta)
+            self._cache.set(asset_cache_key, name_and_meta)
+        return name_and_meta
+        
+    def get_name(self, asset):
+        """Returns the cached name of the given asset."""
+        return self.get_name_and_meta(asset)[0]
+    
+    def get_meta(self, asset):
+        """Returns the cached meta of the given asset."""
+        return self.get_name_and_meta(asset)[1]
         
     def get_path(self, asset, force_save=(not settings.DEBUG)):
         """Returns the cached path of the given asset."""
