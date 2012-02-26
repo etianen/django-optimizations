@@ -8,7 +8,7 @@ from django.contrib.staticfiles import finders
 from django.core.files.storage import default_storage
 
 from optimizations.assetcache import StaticAsset, default_asset_cache
-from optimizations.thumbnailcache import image_opener, default_thumbnail_cache
+from optimizations.thumbnailcache import open_image, default_thumbnail_cache
 
 
 def get_test_thumbnail_asset():
@@ -21,7 +21,7 @@ def get_test_thumbnail_asset():
                     path = os.path.join(storage.prefix, path)
                 asset = StaticAsset(path)
                 try:
-                    image_size = next(image_opener(asset)).size
+                    image_size = open_image(asset).size
                 except:
                     continue
                 else:

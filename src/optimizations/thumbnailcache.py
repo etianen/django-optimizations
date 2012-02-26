@@ -130,7 +130,6 @@ class ThumbnailAsset(Asset):
         self._width = width
         self._height = height
         self._method = method
-        self._opener = image_opener(self._asset)
     
     def get_name(self):
         """Returns the name of this asset."""
@@ -149,16 +148,16 @@ class ThumbnailAsset(Asset):
         return params
     
     @cached_property
-    def _image_data(self):
+    def _image_data_and_size(self):
         """Returns the image data used by this thumbnail asset."""
-        return next(self._opener)
+        image_data = open_image(self._asset)
+        return image_data, Size(*image_data.size)
     
     def get_save_meta(self):
         """Returns the meta parameters to associate with the asset in the asset cache."""
-        image_data = self._image_data
         method = self._method
         requested_size = Size(self._width, self._height)
-        original_size = Size(*image_data.size)
+        _, original_size = self._image_data_and_size
         # Calculate the final width and height of the thumbnail.
         display_size = method.get_display_size(original_size, requested_size)
         return {
@@ -167,11 +166,10 @@ class ThumbnailAsset(Asset):
     
     def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
-        image_data = self._image_data
         method = self._method
         # Calculate sizes.
         display_size = meta["size"]
-        original_size = Size(*image_data.size)
+        image_data, original_size = self._image_data_and_size
         data_size = method.get_data_size(display_size, display_size.intersect(original_size))
         # Check whether we need to make a thumbnail.
         if data_size == original_size:
@@ -203,11 +201,9 @@ class ThumbnailAsset(Asset):
                         pass
                             
         
-def image_opener(asset):
+def open_image(asset):
     """Opens the image represented by the given asset."""
-    image_data = Image.open(asset.get_path())
-    while True:
-        yield image_data
+    return Image.open(asset.get_path())
 
 
 class Thumbnail(object):
