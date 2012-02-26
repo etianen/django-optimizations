@@ -33,7 +33,7 @@ class Command(NoArgsCommand):
         for namespace in StaticAsset.get_namespaces():
             assets = StaticAsset.load("css", namespace);
             try:
-                default_stylesheet_cache.get_urls(assets, compile=True, force_save=True, fail_silently=False)
+                default_stylesheet_cache.get_urls(assets, compile=True, force_save=True)
             except StylesheetError:
                 logger.error("Error when compiling css in namespace {namespace!r}.\n".format(namespace=namespace))
             else:

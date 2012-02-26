@@ -1,15 +1,12 @@
 """A cache of javascipt files, optionally compressed."""
 
-import logging, subprocess, os.path
+import subprocess, os.path
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 
 import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
-
-
-logger = logging.getLogger("optimizations.javascript")
 
 
 class JavascriptError(Exception):
@@ -23,11 +20,10 @@ class JavascriptAsset(GroupedAsset):
     
     join_str = ";"
     
-    def __init__(self, assets, compile, fail_silently):
+    def __init__(self, assets, compile):
         """Initializes the asset."""
         super(JavascriptAsset, self).__init__(assets)
         self._compile = compile
-        self._fail_silently = fail_silently
     
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
@@ -49,14 +45,9 @@ class JavascriptAsset(GroupedAsset):
             stdoutdata, stderrdata = process.communicate(contents)
             # Check it all worked.
             if process.returncode != 0:
-                logger.error(stderrdata)
-                if not self._fail_silently:
-                    raise JavascriptError("Error while compiling javascript.")
-                file = ContentFile(contents)
-            else:
-                # Write the output.
-                file = ContentFile(stdoutdata)
-            storage.save(name, file)
+                raise JavascriptError("Error while compiling javascript.", stderrdata)
+            # Write the output.
+            storage.save(name, ContentFile(stdoutdata))
         else:
             # Just save the joined code.
             super(JavascriptAsset, self).save(storage, name, meta)
@@ -70,11 +61,11 @@ class JavascriptCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
     
-    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG), fail_silently=True):
+    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG)):
         """Returns a sequence of script URLs for the given assets."""
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(JavascriptAsset(assets, compile, fail_silently=fail_silently), force_save=True)]
+                return [self._asset_cache.get_url(JavascriptAsset(assets, compile), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         

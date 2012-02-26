@@ -33,7 +33,7 @@ class Command(NoArgsCommand):
         for namespace in StaticAsset.get_namespaces():
             assets = StaticAsset.load("js", namespace);
             try:
-                default_javascript_cache.get_urls(assets, compile=True, force_save=True, fail_silently=False)
+                default_javascript_cache.get_urls(assets, compile=True, force_save=True)
             except JavascriptError:
                 logger.error("Error while compiling javascript in namespace {namespace!r}.\n".format(namespace=namespace))
             else:
