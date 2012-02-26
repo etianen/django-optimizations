@@ -38,6 +38,7 @@ class JavascriptAsset(GroupedAsset):
     def save(self, storage, name):
         """Saves this asset to the given storage."""
         if self._compile:
+            contents = self.get_contents()
             compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
             process = subprocess.Popen(
                 ("java", "-jar", compressor_path, "--type", "js", "--charset", "utf-8", "-v"),
@@ -45,13 +46,16 @@ class JavascriptAsset(GroupedAsset):
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE,
             )
-            stdoutdata, stderrdata = process.communicate(self.get_contents())
+            stdoutdata, stderrdata = process.communicate(contents)
             # Check it all worked.
             if process.returncode != 0:
                 logger.error(stderrdata)
-                raise JavascriptError("Error while compiling javascript.")
-            # Write the output.
-            file = ContentFile(stdoutdata)
+                if not self._fail_silently:
+                    raise JavascriptError("Error while compiling javascript.")
+                file = ContentFile(contents)
+            else:
+                # Write the output.
+                file = ContentFile(stdoutdata)
             storage.save(name, file)
         else:
             # Just save the joined code.
