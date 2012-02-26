@@ -21,7 +21,8 @@ class Command(NoArgsCommand):
                 default_asset_compiler.compile(namespace)
             except Exception as ex:
                 if hasattr(ex, "detail_message"):
-                    print ex.detail_message
+                    self.stdout.write("\n{}\n".format(ex.detail_message))
                 raise
-            if verbosity >= 2:
-                self.stdout.write(" done!\n")
+            else:
+                if verbosity >= 2:
+                    self.stdout.write(" done!\n")
