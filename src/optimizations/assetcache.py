@@ -211,10 +211,6 @@ class StaticAsset(Asset):
         """Returns the URL of this static asset."""
         return settings.STATIC_URL + self._name
         
-    def get_mtime(self):
-        """Returns the mtime of this static asset."""
-        return os.path.getmtime(self.get_path())
-        
         
 # Create all available asset loaders.
 StaticAsset.initialize()

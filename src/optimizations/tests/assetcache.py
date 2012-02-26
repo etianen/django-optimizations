@@ -17,7 +17,7 @@ class AssetCacheTest(TestCase):
         for finder in finders.get_finders():
             assets.extend(finder.list(()))
         path, storage = random.choice(assets)
-        if hasattr(storage, "prefix"):
+        if getattr(storage, 'prefix', None):
             path = os.path.join(storage.prefix, path)
         self.static_asset = StaticAsset(path)
     

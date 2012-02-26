@@ -107,7 +107,7 @@ class StylesheetCache(object):
         """Returns a sequence of style URLs for the given assets."""
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(StylesheetAsset(assets, compile))]    
+                return [self._asset_cache.get_url(StylesheetAsset(assets, compile), force_save=True)]    
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         
