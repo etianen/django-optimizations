@@ -6,8 +6,9 @@ from django.test import TestCase
 from django.utils.unittest import skipUnless
 from django.contrib.staticfiles import finders
 from django.core.files.base import File
+from django.core.files.storage import default_storage
 
-from optimizations.assetcache import default_asset_cache, StaticAsset, FileAsset
+from optimizations.assetcache import default_asset_cache, StaticAsset, FileAsset, staticfiles_storage
 
 
 def get_test_asset():
@@ -18,7 +19,7 @@ def get_test_asset():
                 path = os.path.join(storage.prefix, path)
             asset = StaticAsset(path)
             try:
-                default_asset_cache.get_path(asset)
+                default_asset_cache.get_name(asset)
             except:
                 continue
             else:
@@ -26,7 +27,7 @@ def get_test_asset():
     return None
 
 
-skipUnlessTestAsset = skipUnless(get_test_asset(), "No static assets could be found on the local STATIC ROOT.")
+skipUnlessTestAsset = skipUnless(get_test_asset(), "No static assets could be found in the static files storage.")
 
 
 class AssetCacheTest(TestCase):
@@ -34,15 +35,12 @@ class AssetCacheTest(TestCase):
     @skipUnlessTestAsset
     def assertAssetWorks(self, asset):
         # Does the path exist?
-        path = default_asset_cache.get_path(asset)
-        self.assertTrue(os.path.exists(path))
-        # Is the path different?
-        self.assertNotEqual(path, asset.get_path())
+        name = default_asset_cache.get_name(asset)
+        self.assertTrue(default_storage.exists(name))
+        # Is the name different?
+        self.assertNotEqual(name, asset.get_name())
         # Has the asset been copied successfully?
-        with open(path, "rb") as handle1, open(asset.get_path(), "rb") as handle2:
-            self.assertEqual(hashlib.sha1(handle1.read()).hexdigest(), hashlib.sha1(handle2.read()).hexdigest())
-        # Does the URL work?
-        self.assertTrue(default_asset_cache.get_url(asset).endswith(default_asset_cache.get_name(asset)))
+        self.assertEqual(hashlib.sha1(staticfiles_storage.open(asset.get_name()).read()).hexdigest(), hashlib.sha1(default_storage.open(name).read()).hexdigest())
     
     @skipUnlessTestAsset
     def testStaticAsset(self):

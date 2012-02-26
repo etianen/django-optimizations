@@ -5,6 +5,7 @@ import os, collections, sys
 from PIL import Image
 
 from optimizations.assetcache import default_asset_cache, Asset, AdaptiveAsset
+from optimizations.propertycache import cached_property
 
 
 class Size(collections.namedtuple("SizeBase", ("width", "height",))):
@@ -196,12 +197,12 @@ class Thumbnail(object):
         self.width = width
         self.height = height
         
-    @property
+    @cached_property
     def url(self):
         """The URL of the thumbnail."""
         return self._asset_cache.get_url(self._asset)
         
-    @property
+    @cached_property
     def path(self):
         """The path of the thumbnail."""
         return self._asset_cache.get_path(self._asset)
