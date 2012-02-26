@@ -8,11 +8,17 @@ from django.core.files.base import ContentFile
 
 import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
+from optimizations.assetcompiler import AssetCompilerPluginBase, default_asset_compiler
 
 
 class StylesheetError(Exception):
     
     """Something went wrong with stylesheet compilation."""
+    
+    def __init__(self, message, detail_message):
+        """Initializes the stylesheet error."""
+        super(StylesheetError, self).__init__(message)
+        self.detail_message = detail_message
 
 
 RE_URLS = (
@@ -108,3 +114,21 @@ class StylesheetCache(object):
         
 # The default stylesheet cache.
 default_stylesheet_cache = StylesheetCache()
+
+
+# Asset compiler plugin.
+
+class StylesheetAssetCompilerPlugin(AssetCompilerPluginBase):
+    
+    """An asset compiler plugin for stylesheet files."""
+    
+    def __init__(self, stylesheet_cache=default_stylesheet_cache):
+        """Initialzies the stylesheet asset compiler plugin."""
+        self._stylesheet_cache = stylesheet_cache
+        
+    def compile_assets(self, assets):
+        """Compiles the given stylesheet assets."""
+        self._stylesheet_cache.get_urls(assets, force_save=True)
+        
+
+default_asset_compiler.register_plugin("css", StylesheetAssetCompilerPlugin())

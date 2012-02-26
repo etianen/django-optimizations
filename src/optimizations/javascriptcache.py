@@ -7,11 +7,17 @@ from django.core.files.base import ContentFile
 
 import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
+from optimizations.assetcompiler import default_asset_compiler, AssetCompilerPluginBase
 
 
 class JavascriptError(Exception):
     
     """Something went wrong with javascript compilation."""
+    
+    def __init__(self, message, detail_message):
+        """Initializes the javascript error."""
+        super(JavascriptError, self).__init__(message)
+        self.detail_message = detail_message
 
 
 class JavascriptAsset(GroupedAsset):
@@ -72,3 +78,21 @@ class JavascriptCache(object):
         
 # The default javascript cache.
 default_javascript_cache = JavascriptCache()
+
+
+# Asset compiler plugin.
+
+class JavascriptAssetCompilerPlugin(AssetCompilerPluginBase):
+    
+    """An asset compiler plugin for javascript files."""
+    
+    def __init__(self, javascript_cache=default_javascript_cache):
+        """Initialzies the javascript asset compiler plugin."""
+        self._javascript_cache = javascript_cache
+        
+    def compile_assets(self, assets):
+        """Compiles the given javascript assets."""
+        self._javascript_cache.get_urls(assets, force_save=True)
+        
+
+default_asset_compiler.register_plugin("js", JavascriptAssetCompilerPlugin())
