@@ -18,11 +18,12 @@ from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.core.cache import get_cache, InvalidCacheBackendError, cache as default_cache
+from django.core.files.storage import get_storage_class
 
 try:
     staticfiles_storage = storage.staticfiles_storage
-except NameError:
-    staticfiles_storage = storage.get_storage_class(settings.STATICFILES_STORAGE)()  # Django 1.3 compatibility. 
+except AttributeError:
+    staticfiles_storage = get_storage_class(settings.STATICFILES_STORAGE)()  # Django 1.3 compatibility. 
 
 
 def freeze_dict(params):
