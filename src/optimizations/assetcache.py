@@ -219,6 +219,12 @@ class StaticAsset(Asset):
     def get_url(self):
         """Returns the URL of this static asset."""
         return staticfiles_storage.url(self._name)
+    
+    def get_mtime(self):
+        """Returns the last modified time of this asset."""
+        if settings.DEBUG:
+            return os.path.getmtime(self.get_path())
+        return staticfiles_storage.modified_time(self.get_name())
         
         
 class FileAsset(Asset):

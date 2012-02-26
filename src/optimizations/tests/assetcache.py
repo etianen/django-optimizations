@@ -1,26 +1,40 @@
 """Tests for the asset cache."""
 
-import random, os.path, hashlib
+import os.path, hashlib
 
 from django.test import TestCase
+from django.utils.unittest import skipUnless
 from django.contrib.staticfiles import finders
 from django.core.files.base import File
 
 from optimizations.assetcache import default_asset_cache, StaticAsset, FileAsset
 
 
-class AssetCacheTest(TestCase):
+def get_test_asset():
+    # Pick a random asset.
+    assets = []
+    for finder in finders.get_finders():
+        assets.extend(finder.list(()))
+    if assets:
+        for path, storage in assets:
+            if getattr(storage, 'prefix', None):
+                path = os.path.join(storage.prefix, path)
+            asset = StaticAsset(path)
+            try:
+                default_asset_cache.get_path(asset)
+            except:
+                continue
+            else:
+                return asset
+    return None
 
-    def setUp(self):
-        # Pick a random asset.
-        assets = []
-        for finder in finders.get_finders():
-            assets.extend(finder.list(()))
-        path, storage = random.choice(assets)
-        if getattr(storage, 'prefix', None):
-            path = os.path.join(storage.prefix, path)
-        self.static_asset = StaticAsset(path)
+
+skipUnlessTestAsset = skipUnless(get_test_asset(), "No static assets could be found on the local STATIC ROOT.")
+
+
+class AssetCacheTest(TestCase):
     
+    @skipUnlessTestAsset
     def assertAssetWorks(self, asset):
         # Does the path exist?
         path = default_asset_cache.get_path(asset)
@@ -33,9 +47,11 @@ class AssetCacheTest(TestCase):
         # Does the URL work?
         self.assertTrue(default_asset_cache.get_url(asset).endswith(default_asset_cache.get_name(asset)))
     
+    @skipUnlessTestAsset
     def testStaticAsset(self):
-        self.assertAssetWorks(self.static_asset)
-        
+        self.assertAssetWorks(get_test_asset())
+    
+    @skipUnlessTestAsset    
     def testFileAsset(self):
-        asset = FileAsset(File(open(self.static_asset.get_path(), "rb")))
+        asset = FileAsset(File(open(get_test_asset().get_path(), "rb")))
         self.assertAssetWorks(asset)

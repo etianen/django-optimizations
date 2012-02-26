@@ -20,6 +20,7 @@ asset_escapers = {
 }
 
 
+# TODO: Should probably be a filter.
 @parameter_tag(register)
 def asset(src, escape="html"):
     """Returns the cached asset URL of the given asset."""
