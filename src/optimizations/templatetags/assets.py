@@ -143,7 +143,7 @@ class MultiStylesheetRenderer(object):
     
     
 @parameter_tag(register)
-def stylesheet(src="default", **attrs):
+def stylesheet(href="default", **attrs):
     """Renders one or more stylesheet tags."""
-    assets = StaticAsset.load("css", src)
+    assets = StaticAsset.load("css", href)
     return MultiStylesheetRenderer(default_stylesheet_cache.get_urls(assets), attrs)

@@ -1,43 +1,42 @@
 """A cache of javascipt files, optionally compressed."""
 
-import re, logging, urlparse
+import re, logging, urlparse, os.path, subprocess
 from contextlib import closing
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 
+import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
 
 
 logger = logging.getLogger("optimizations.stylesheet")
 
 
+class StylesheetError(Exception):
+    
+    """Something went wrong with stylesheet compilation."""
+
+
 RE_URLS = (
     re.compile(u"url\('([^']+)'\)", re.IGNORECASE),
     re.compile(u"url\(\"([^\"]+)\"\)", re.IGNORECASE),
     re.compile(u"url\(([^\)]+)\)", re.IGNORECASE),
+    re.compile(u"@import\s*\('([^']+)'\)", re.IGNORECASE),
+    re.compile(u"@import\s*\(\"([^\"]+)\"\)", re.IGNORECASE),
+    re.compile(u"@import\s*\(([^\)]+)\)", re.IGNORECASE),
 )
-
-RE_WHITESPACE = re.compile(u"\s{2,}")
-
-RE_IGNORABLE_WHITESPACE = (
-    re.compile(u"\s*({char})\s*".format(char=re.escape(char)), re.IGNORECASE)
-    for char in u"{};,"
-)
-
-RE_LINEBREAKS = re.compile(u"(.{1000,}?\})", re.IGNORECASE)
-
-RE_HEX = re.compile(u"#[a-f0-9]{6}", re.IGNORECASE)
 
 
 class StylesheetAsset(GroupedAsset):
 
     """An asset that represents one or more stylesheet files."""
     
-    def __init__(self, assets, compile):
+    def __init__(self, assets, compile, fail_silently):
         """Initializes the asset."""
         super(StylesheetAsset, self).__init__(assets)
         self._compile = compile
+        self._fail_silently = fail_silently
     
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
@@ -72,23 +71,27 @@ class StylesheetAsset(GroupedAsset):
                             url = url,
                         )
                     source = re_url.sub(do_url_replacement, source)
-                # Compress hex codes.
-                def do_hex_replacement(match):
-                    hex = match.group(0)
-                    if hex[1] == hex[2] and hex[3] == hex[4] and hex[5] == hex[6]:
-                        return u"#{0}{1}{2}".format(hex[1], hex[3], hex[5])
-                    return hex
-                source = RE_HEX.sub(do_hex_replacement, source)
-                # Reduce whitespace.
-                source = RE_WHITESPACE.sub(u" ", source)
-                for re_ignorable in RE_IGNORABLE_WHITESPACE:
-                    source = re_ignorable.sub(ur"\1", source)
-                # Add occasional linebreaks.
-                source = RE_LINEBREAKS.sub(ur"\1\n", source)
-                # Add to the files.
                 file_parts.append(source.encode("utf-8"))
-            # Save the code.
-            file = ContentFile(self.join_str.join(file_parts))
+            # Consolidate the content.
+            contents = self.join_str.join(file_parts)
+            # Compress the content.
+            compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
+            process = subprocess.Popen(
+                ("java", "-jar", compressor_path, "--type", "css", "--charset", "utf-8", "-v"),
+                stdin = subprocess.PIPE,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+            )
+            stdoutdata, stderrdata = process.communicate(contents)
+            # Check it all worked.
+            if process.returncode != 0:
+                logger.error(stderrdata)
+                if not self._fail_silently:
+                    raise StylesheetError("Error while compiling stylesheets.")
+                file = ContentFile(self.get_contents())
+            else:
+                # Write the output.
+                file = ContentFile(stdoutdata)
             storage.save(name, file)
         else:
             # Just save the joined code.
@@ -103,11 +106,11 @@ class StylesheetCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
     
-    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG)):
+    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG), fail_silently=True):
         """Returns a sequence of style URLs for the given assets."""
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(StylesheetAsset(assets, compile), force_save=True)]    
+                return [self._asset_cache.get_url(StylesheetAsset(assets, compile, fail_silently=True), force_save=True)]    
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         
