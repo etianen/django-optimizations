@@ -8,11 +8,11 @@ A classic use of an asset cache is to copy static files from a server with
 a short expiry header to a server with an extremely long expiry header.
 """
 
-import hashlib, os.path, glob, fnmatch, re
+import hashlib, os.path, fnmatch, re
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
-from django.contrib.staticfiles.finders import find as find_static_path
+from django.contrib.staticfiles.finders import find as find_static_path, get_finders
 from django.contrib.staticfiles import storage
 from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
@@ -170,31 +170,28 @@ class StaticAsset(Asset):
     @staticmethod
     def _load_namespaces():
         namespaces = getattr(StaticAsset, "_namespace_cache", None)
-        if not namespaces:
-            StaticAsset._namespace_cache = namespaces = {}
+        if namespaces is None:
+            namespaces = StaticAsset._namespace_cache = {}
+            # Find all the assets.
+            all_asset_names = []
+            for finder in get_finders():
+                for path, storage in finder.list(()):
+                    if getattr(storage, "prefix", None):
+                        path = os.path.join(storage.prefix, path)
+                    all_asset_names.append(path)
             # Loads the assets.
-            def do_load(type, dirname="", files=(), include=None, exclude=None):
+            def do_load(type, include=(), exclude=()):
+                include = [re.compile(fnmatch.translate(pattern)) for pattern in include]
+                exclude = [re.compile(fnmatch.translate(pattern)) for pattern in exclude]
                 # Create the loaded list of assets.
-                asset_names = [
-                    os.path.join(dirname, file)
-                    for file in files
-                ]
-                # Resolve the patterns.
-                def resolve_patterns(patterns, default):
-                    if patterns is None:
-                        patterns = default
-                    if isinstance(patterns, basestring):
-                        patterns = (patterns,)
-                    return [re.compile(fnmatch.translate(pattern), re.IGNORECASE) for pattern in patterns]
-                include = resolve_patterns(include, "*." + type)
-                exclude = resolve_patterns(exclude, ())
-                # Scan the directory.
-                root_path = StaticAsset.get_static_path(dirname)
-                for path in sorted(glob.iglob(os.path.join(root_path, "*"))):
-                    asset_rel_name = os.path.relpath(path, root_path)
-                    asset_name = os.path.join(dirname, asset_rel_name)
-                    if not asset_name in asset_names and any(p.match(asset_rel_name) for p in include) and not any(p.match(asset_rel_name) for p in exclude):
-                        asset_names.append(asset_name)
+                asset_names = []
+                seen_asset_names = set()
+                for pattern in include:
+                    new_asset_names = [a for a in all_asset_names if pattern.match(a) and not a in seen_asset_names]
+                    asset_names.extend(new_asset_names)
+                    seen_asset_names.update(new_asset_names)
+                for pattern in exclude:
+                    asset_names = [a for a in asset_names if not pattern.match(a)]
                 # Create the assets.
                 return [StaticAsset(asset_name) for asset_name in asset_names]
             # Load in all namespaces.

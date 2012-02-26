@@ -12,12 +12,9 @@ from optimizations.assetcache import default_asset_cache, StaticAsset, FileAsset
 
 def get_test_asset():
     # Pick a random asset.
-    assets = []
     for finder in finders.get_finders():
-        assets.extend(finder.list(()))
-    if assets:
-        for path, storage in assets:
-            if getattr(storage, 'prefix', None):
+        for path, storage in finder.list(()):
+            if getattr(storage, "prefix", None):
                 path = os.path.join(storage.prefix, path)
             asset = StaticAsset(path)
             try:
