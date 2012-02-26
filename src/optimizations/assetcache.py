@@ -13,9 +13,15 @@ from abc import ABCMeta, abstractmethod
 from contextlib import closing
 
 from django.contrib.staticfiles.finders import find as find_static_path
+from django.contrib.staticfiles import storage
 from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
+
+try:
+    staticfiles_storage = storage.staticfiles_storage
+except NameError:
+    staticfiles_storage = storage.get_storage_class(settings.STATICFILES_STORAGE)()  # Django 1.3 compatibility. 
 
 
 def freeze_dict(params):
@@ -120,14 +126,15 @@ class StaticAsset(Asset):
         if settings.DEBUG:
             path = find_static_path(name)
             if path is None:
-                path = os.path.join(settings.STATIC_ROOT, name)
+                path = staticfiles_storage.path(name)
         else:
-            path = os.path.join(settings.STATIC_ROOT, name)
+            path = staticfiles_storage.path(name) 
         return os.path.abspath(path)
         
     @staticmethod
     def load(type, assets="default"):
         """Resolves the given asset name into a list of static assets."""
+        namespaces = StaticAsset._load_namespaces()
         # Adapt a single asset to a list.
         if isinstance(assets, (basestring, Asset)):
             assets = [assets]
@@ -138,7 +145,7 @@ class StaticAsset(Asset):
             if isinstance(asset, Asset):
                 asset_objs.append(asset)
             # Convert asset group ids into assets.
-            asset_namespace = StaticAsset._cache.get(asset)
+            asset_namespace = namespaces.get(asset)
             if asset_namespace is not None:
                 asset_group = asset_namespace.get(type)
                 if asset_group is not None:
@@ -150,7 +157,7 @@ class StaticAsset(Asset):
     @staticmethod
     def get_namespaces():
         """Returns a list of all namespaces in the static asset loader."""
-        return StaticAsset._cache.keys()
+        return StaticAsset._load_namespaces().keys()
     
     @staticmethod
     def get_urls(type, assets="default"):
@@ -161,39 +168,41 @@ class StaticAsset(Asset):
         ]
     
     @staticmethod
-    def initialize():
-        """Loads all static assets."""
-        cache = StaticAsset._cache = {}
-        # Loads the assets.
-        def do_load(type, dirname="", files=(), include=None, exclude=None):
-            # Create the loaded list of assets.
-            asset_names = [
-                os.path.join(dirname, file)
-                for file in files
-            ]
-            # Resolve the patterns.
-            def resolve_patterns(patterns, default):
-                if patterns is None:
-                    patterns = default
-                if isinstance(patterns, basestring):
-                    patterns = (patterns,)
-                return [re.compile(fnmatch.translate(pattern), re.IGNORECASE) for pattern in patterns]
-            include = resolve_patterns(include, "*." + type)
-            exclude = resolve_patterns(exclude, ())
-            # Scan the directory.
-            root_path = StaticAsset.get_static_path(dirname)
-            for path in sorted(glob.iglob(os.path.join(root_path, "*"))):
-                asset_rel_name = os.path.relpath(path, root_path)
-                asset_name = os.path.join(dirname, asset_rel_name)
-                if not asset_name in asset_names and any(p.match(asset_rel_name) for p in include) and not any(p.match(asset_rel_name) for p in exclude):
-                    asset_names.append(asset_name)
-            # Create the assets.
-            return [StaticAsset(asset_name) for asset_name in asset_names]
-        # Load in all namespaces.
-        for namespace, types in getattr(settings, "STATIC_ASSETS", {}).iteritems():
-            type_cache = cache[namespace] = {}
-            for type, config in types.iteritems():
-                type_cache[type] = do_load(type, **config)
+    def _load_namespaces():
+        namespaces = getattr(StaticAsset, "_namespace_cache", None)
+        if not namespaces:
+            StaticAsset._namespace_cache = namespaces = {}
+            # Loads the assets.
+            def do_load(type, dirname="", files=(), include=None, exclude=None):
+                # Create the loaded list of assets.
+                asset_names = [
+                    os.path.join(dirname, file)
+                    for file in files
+                ]
+                # Resolve the patterns.
+                def resolve_patterns(patterns, default):
+                    if patterns is None:
+                        patterns = default
+                    if isinstance(patterns, basestring):
+                        patterns = (patterns,)
+                    return [re.compile(fnmatch.translate(pattern), re.IGNORECASE) for pattern in patterns]
+                include = resolve_patterns(include, "*." + type)
+                exclude = resolve_patterns(exclude, ())
+                # Scan the directory.
+                root_path = StaticAsset.get_static_path(dirname)
+                for path in sorted(glob.iglob(os.path.join(root_path, "*"))):
+                    asset_rel_name = os.path.relpath(path, root_path)
+                    asset_name = os.path.join(dirname, asset_rel_name)
+                    if not asset_name in asset_names and any(p.match(asset_rel_name) for p in include) and not any(p.match(asset_rel_name) for p in exclude):
+                        asset_names.append(asset_name)
+                # Create the assets.
+                return [StaticAsset(asset_name) for asset_name in asset_names]
+            # Load in all namespaces.
+            for namespace, types in getattr(settings, "STATIC_ASSETS", {}).iteritems():
+                type_cache = namespaces[namespace] = {}
+                for type, config in types.iteritems():
+                    type_cache[type] = do_load(type, **config)
+        return namespaces
     
     def __init__(self, name):
         """Initializes the static asset."""
@@ -209,11 +218,7 @@ class StaticAsset(Asset):
         
     def get_url(self):
         """Returns the URL of this static asset."""
-        return settings.STATIC_URL + self._name
-        
-        
-# Create all available asset loaders.
-StaticAsset.initialize()
+        return staticfiles_storage.url(self._name)
         
         
 class FileAsset(Asset):
