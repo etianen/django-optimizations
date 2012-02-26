@@ -17,6 +17,7 @@ from django.contrib.staticfiles import storage
 from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
+from django.core.cache import get_cache, InvalidCacheBackendError, cache as default_cache
 
 try:
     staticfiles_storage = storage.staticfiles_storage
@@ -26,7 +27,13 @@ except NameError:
 
 def freeze_dict(params):
     """Returns an invariant version of the dictionary, suitable for hashing."""
-    return tuple(sorted((params).iteritems()))
+    return u"&".join(
+        u"{key}={value}".format(
+            key = key,
+            value = value,
+        )
+        for key, value in sorted((params).iteritems())
+    )
 
 
 class Asset(object):
@@ -82,6 +89,11 @@ class Asset(object):
     def get_id(self):
         """Returns a globally unique id for this asset."""
         return freeze_dict(self._get_and_check_id_params())
+    
+    def get_cache_key(self):
+        return u"optimizations:assetcache:{id}".format(
+            id = self.get_id(),
+        )
         
     def open(self):
         """Returns an open File for this asset."""
@@ -100,15 +112,7 @@ class Asset(object):
         
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
-        return hashlib.sha1(
-            u"&".join(
-                u"{key}={value}".format(
-                    key = key,
-                    value = value,
-                )
-                for key, value in freeze_dict(self.get_hash_params())
-            )
-        ).hexdigest()
+        return hashlib.sha1(freeze_dict(self.get_hash_params())).hexdigest()
         
     def save(self, storage, name):
         """Saves this asset to the given storage."""
@@ -329,13 +333,16 @@ class AssetCache(object):
         """Initializes the asset cache."""
         self._storage = storage
         self._prefix = prefix
-        self._name_cache = {}
+        try:
+            self._name_cache = get_cache("optimizations.assetcache")
+        except InvalidCacheBackendError:
+            self._name_cache = default_cache
         
     def get_name(self, asset):
         """Returns the cached name of the given asset."""
         # Get the asset ID.
-        asset_id = asset.get_id()
-        name = self._name_cache.get(asset_id)
+        asset_cache_key = asset.get_cache_key()
+        name = self._name_cache.get(asset_cache_key)
         if name is None:
             # Generate the name.
             asset_name = asset.get_name()
@@ -351,7 +358,7 @@ class AssetCache(object):
             if not self._storage.exists(name):
                 asset.save(self._storage, name)
             # Cache the name.
-            self._name_cache[asset_id] = name
+            self._name_cache.set(asset_cache_key, name)
         return name
         
     def get_path(self, asset, force_save=(not settings.DEBUG)):
