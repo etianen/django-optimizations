@@ -1,8 +1,11 @@
 """A cache for thumbnailed images."""
 
-import os, collections, sys
+import collections, sys, os.path
+from cStringIO import StringIO
 
 from PIL import Image
+
+from django.core.files.base import File
 
 from optimizations.assetcache import default_asset_cache, Asset, AdaptiveAsset
 from optimizations.propertycache import cached_property
@@ -181,30 +184,60 @@ class ThumbnailAsset(Asset):
             try:
                 image_data = method.do_resize(image_data, original_size, display_size, data_size)
             except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
+                if isinstance(ex, IOError):
+                    raise
                 raise IOError(str(ex))
             # If the storage has a path, then save it efficiently.
-            thumbnail_path = storage.path(name)
             try:
-                os.makedirs(os.path.dirname(thumbnail_path))
-            except OSError:
-                pass
-            try:
-                image_data.save(thumbnail_path)
-            except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
+                thumbnail_path = storage.path(name)
+            except NotImplementedError:
+                # No path for the storage, so save it in a memory buffer.
+                buffer = StringIO()
+                _, extension = os.path.splitext(name)
+                format = extension.lstrip(".").upper().replace("jpg", "jpeg")
                 try:
+                    image_data.save(buffer, format)
+                except Exception as ex:    # HACK: PIL raises all sorts of Exceptions :(
+                    if isinstance(ex, IOError):
+                        raise
                     raise IOError(str(ex))
-                finally:
-                    # Remove an incomplete file, if present.
+                # Write the file.
+                buffer.seek(0, os.SEEK_END)
+                buffer_length = buffer.tell()
+                buffer.seek(0)
+                file = File(buffer)
+                file.size = buffer_length
+                storage.save(name, file)
+            else:
+                # We can do an efficient streaming save.
+                try:
+                    os.makedirs(os.path.dirname(thumbnail_path))
+                except OSError:
+                    pass
+                try:
+                    image_data.save(thumbnail_path)
+                except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
                     try:
-                        os.unlink(thumbnail_path)
-                    except:
-                        pass
+                        if isinstance(ex, IOError):
+                            raise
+                        raise IOError(str(ex))
+                    finally:
+                        # Remove an incomplete file, if present.
+                        try:
+                            os.unlink(thumbnail_path)
+                        except:
+                            pass
                             
         
 def open_image(asset):
     """Opens the image represented by the given asset."""
-    return Image.open(asset.get_path())
-
+    try:
+        asset_path = asset.get_path()
+    except NotImplementedError:
+        return Image.open(StringIO(asset.get_contents()))
+    else:
+        return Image.open(asset_path)
+    
 
 class Thumbnail(object):
 
