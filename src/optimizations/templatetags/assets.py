@@ -1,7 +1,6 @@
 """Template tags used for optimizing assets."""
 
 from django import template
-from django.utils.html import escape, escapejs
 
 from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
@@ -13,20 +12,10 @@ from optimizations.templatetags import parameter_tag
 register = template.Library()
 
 
-# Escape functions for the asset tag.
-asset_escapers = {
-    "html": escape,
-    "js": escapejs,
-}
-
-
-# TODO: Should probably be a filter.
-@parameter_tag(register)
-def asset(src, escape="html"):
+@register.filter
+def asset_url(src):
     """Returns the cached asset URL of the given asset."""
-    url = default_asset_cache.get_url(src)
-    return asset_escapers[escape](url)
-    
+    return default_asset_cache.get_url(src)
 
 
 class ThumbnailRenderer(object):
