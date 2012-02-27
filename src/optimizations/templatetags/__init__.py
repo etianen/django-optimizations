@@ -28,7 +28,7 @@ def parse_token(parser, token):
             kwargs[kwarg_match.group(1)] = parser.compile_filter(kwarg_match.group(2))
         else:
             if kwargs:
-                raise template.TemplateSyntaxError("Keyword arguments cannot follow position arguments")
+                raise template.TemplateSyntaxError("Positional arguments cannot follow keyword arguments")
             args.append(parser.compile_filter(part))
     # All done!
     return args, kwargs, alias
@@ -36,7 +36,7 @@ def parse_token(parser, token):
 
 class ParameterNode(template.Node):
 
-    """A node for a paramter tag."""
+    """A node for a parameter tag."""
     
     def __init__(self, takes_context, func, args, kwargs, alias, body):
         """Initializes the parameter node."""
