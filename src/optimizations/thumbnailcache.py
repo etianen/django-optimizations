@@ -266,12 +266,12 @@ class Thumbnail(object):
     @property
     def url(self):
         """The URL of the thumbnail."""
-        return self._asset_cache._storage.get_url(self._asset_name_and_meta[0])
+        return self._asset_cache._storage.url(self._asset_name_and_meta[0])
         
     @property
     def path(self):
         """The path of the thumbnail."""
-        return self._asset_cache._storage.get_path(self._asset_name_and_meta[0])
+        return self._asset_cache._storage.url(self._asset_name_and_meta[0])
 
 
 class ThumbnailCache(object):
