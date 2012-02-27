@@ -64,6 +64,14 @@ class Asset(object):
         """Returns the last modified time of this asset."""
         return os.path.getmtime(self.get_path())
     
+    def get_contents_hash(self):
+        """Returns an md5 hash of the file's contents."""
+        md5 = hashlib.md5()
+        with closing(self.open()) as handle:
+            for chunk in handle.chunks():
+                md5.update(chunk)
+        return md5.hexdigest()
+    
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = {}
@@ -108,7 +116,11 @@ class Asset(object):
     def get_hash_params(self):
         """Returns the params which should be used to generate the hash."""
         params = self._get_and_check_id_params()
-        params["mtime"] = self.get_mtime()
+        try:
+            params["mtime"] = self.get_mtime()
+        except NotImplementedError:
+            # Not all backends support mtime, so fall back to md5 of the contents.
+            params["md5"] = self.get_contents_hash()
         return params
         
     def get_hash(self):
