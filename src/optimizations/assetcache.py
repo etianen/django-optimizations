@@ -200,6 +200,7 @@ class StaticAsset(Asset):
                     if getattr(storage, "prefix", None):
                         path = os.path.join(storage.prefix, path)
                     all_asset_names.append(path)
+            all_asset_names.sort()
             # Loads the assets.
             def do_load(type, include=(), exclude=()):
                 include = [re.compile(fnmatch.translate(pattern)) for pattern in include]
