@@ -192,7 +192,7 @@ class StaticAsset(Asset):
     def _load_namespaces():
         namespaces = getattr(StaticAsset, "_namespace_cache", None)
         if namespaces is None:
-            namespaces = StaticAsset._namespace_cache = {}
+            namespaces = {}
             # Find all the assets.
             all_asset_names = []
             for finder in get_finders():
@@ -221,6 +221,8 @@ class StaticAsset(Asset):
                 type_cache = namespaces[namespace] = {}
                 for type, config in types.iteritems():
                     type_cache[type] = do_load(type, **config)
+            # Save in the cache.
+            StaticAsset._namespace_cache = namespaces
         return namespaces
     
     def __init__(self, name):
