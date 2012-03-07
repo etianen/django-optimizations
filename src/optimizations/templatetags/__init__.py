@@ -9,10 +9,11 @@ def simple_tag(register, takes_context=False, name=None):
     """Annotation for a Django 1.4 style simple tag."""
     def decorator(func):
         # Use the django-supplied tag, if available.
-        if register.assignment_tag:
+        if hasattr(register, "assignment_tag"):
             return register.simple_tag(takes_context=takes_context, name=name)(func)
         # Otherwise, use the compatibility function.
-        assert False
+        from optimizations.templatetags._compatibility import simple_tag_compat
+        return simple_tag_compat(register, takes_context, func, name)
     return decorator
 
 
@@ -42,8 +43,9 @@ def assignment_tag(register, takes_context=False, name=None):
     """Annotation for a Django-1.4 style assignment tag."""
     def decorator(func):
         # Use the django-supplied tag, if available.
-        if register.assignment_tag:
+        if hasattr(register, "assignment_tag"):
             return register.assignment_tag(takes_context=takes_context, name=name)(func)
         # Otherwise, use the compatibility function.
-        assert False
+        from optimizations.templatetags._compatibility import assignment_tag_compat
+        return assignment_tag_compat(register, takes_context, func, name)
     return decorator
