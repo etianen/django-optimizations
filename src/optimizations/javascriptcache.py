@@ -88,6 +88,8 @@ class JavascriptAssetCompilerPlugin(AssetCompilerPluginBase):
     
     """An asset compiler plugin for javascript files."""
     
+    asset_type = "javascript"
+    
     def __init__(self, javascript_cache=default_javascript_cache):
         """Initialzies the javascript asset compiler plugin."""
         self._javascript_cache = javascript_cache

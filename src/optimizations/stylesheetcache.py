@@ -124,6 +124,8 @@ class StylesheetAssetCompilerPlugin(AssetCompilerPluginBase):
     
     """An asset compiler plugin for stylesheet files."""
     
+    asset_type = "stylesheet"
+    
     def __init__(self, stylesheet_cache=default_stylesheet_cache):
         """Initialzies the stylesheet asset compiler plugin."""
         self._stylesheet_cache = stylesheet_cache

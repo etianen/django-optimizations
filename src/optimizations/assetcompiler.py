@@ -16,6 +16,8 @@ class AssetCompilerPluginBase(object):
     
     __metaclass__ = abc.ABCMeta
     
+    asset_type = "various"
+    
     @abc.abstractmethod
     def compile_assets(self, assets):
         """Compiles the given assets."""
@@ -53,11 +55,16 @@ class AssetCompiler(object):
     
     # Compilation.
     
-    def compile(self, namespace="default"):
-        """Compiles all assets in the given namespace."""
+    def compile_iter(self, namespace="default"):
+        """Iterates over all assets in the given namespace, compiling as it goes."""
         for plugin_name, plugin in self._plugins.iteritems():
             assets = StaticAsset.load(plugin_name, namespace)
             plugin.compile_assets(assets)
+            yield plugin, assets
+    
+    def compile(self, namespace="default"):
+        """Compiles all assets in the given namespace."""
+        return list(self.compile_iter(namespace))
 
 
 # A shared, global asset compiler.
