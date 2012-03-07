@@ -1,0 +1,5 @@
+include src/optimizations/resources/*.jar
+include src/optimizations/templates/assets/*.html
+include src/optimizations/locale/*/LC_MESSAGES/django.*
+include LICENSE
+include README.markdown
