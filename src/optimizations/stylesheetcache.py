@@ -103,8 +103,10 @@ class StylesheetCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
     
-    def get_urls(self, assets, compile=True, force_save=(not settings.DEBUG)):
+    def get_urls(self, assets, compile=True, force_save=None):
         """Returns a sequence of style URLs for the given assets."""
+        if force_save is None:
+            force_save = not settings.DEBUG
         if force_save:
             if assets:
                 return [self._asset_cache.get_url(StylesheetAsset(assets, compile), force_save=True)]    

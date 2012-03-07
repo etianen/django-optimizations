@@ -1,1 +1,1 @@
-<script src="{{url}}"></script>
+{% for url in urls %}<script src="{{url}}"{% for name, value in attrs.items %} {{name}}="{{value}}"{% endfor %}></script>{% endfor %}

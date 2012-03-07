@@ -1,33 +1,13 @@
 """Tests for the asset cache."""
 
-import os.path, hashlib
+import hashlib
 
 from django.test import TestCase
-from django.utils.unittest import skipUnless
-from django.contrib.staticfiles import finders
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 
-from optimizations.assetcache import default_asset_cache, StaticAsset, FileAsset, staticfiles_storage
-
-
-def get_test_asset():
-    # Pick a random asset.
-    for finder in finders.get_finders():
-        for path, storage in finder.list(()):
-            if getattr(storage, "prefix", None):
-                path = os.path.join(storage.prefix, path)
-            asset = StaticAsset(path)
-            try:
-                default_asset_cache.get_name(asset)
-            except:
-                continue
-            else:
-                return asset
-    return None
-
-
-skipUnlessTestAsset = skipUnless(get_test_asset(), "No static assets could be found in the static files storage.")
+from optimizations.assetcache import default_asset_cache, FileAsset, staticfiles_storage
+from optimizations.tests.base import skipUnlessTestAsset, get_test_asset
 
 
 class AssetCacheTest(TestCase):

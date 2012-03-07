@@ -165,14 +165,15 @@ class StaticAsset(Asset):
             # Leave actual assets as they are.
             if isinstance(asset, Asset):
                 asset_objs.append(asset)
-            # Convert asset group ids into assets.
-            asset_namespace = namespaces.get(asset)
-            if asset_namespace is not None:
-                asset_group = asset_namespace.get(type)
-                if asset_group is not None:
-                    asset_objs.extend(asset_group)
             else:
-                asset_objs.append(StaticAsset(asset))
+                # Convert asset group ids into assets.
+                asset_namespace = namespaces.get(asset)
+                if asset_namespace is not None:
+                    asset_group = asset_namespace.get(type)
+                    if asset_group is not None:
+                        asset_objs.extend(asset_group)
+                else:
+                    asset_objs.append(StaticAsset(asset))
         return asset_objs
         
     @staticmethod
@@ -392,8 +393,10 @@ class AssetCache(object):
         """Returns the cached meta of the given asset."""
         return self.get_name_and_meta(asset)[1]
         
-    def get_path(self, asset, force_save=(not settings.DEBUG)):
+    def get_path(self, asset, force_save=None):
         """Returns the cached path of the given asset."""
+        if force_save is None:
+            force_save = not settings.DEBUG
         asset = AdaptiveAsset(asset)
         if not force_save:
             try:
@@ -402,8 +405,10 @@ class AssetCache(object):
                 pass
         return self._storage.path(self.get_name(asset))
         
-    def get_url(self, asset, force_save=(not settings.DEBUG)):
+    def get_url(self, asset, force_save=None):
         """Returns the cached url of the given asset."""
+        if force_save is None:
+            force_save = not settings.DEBUG
         asset = AdaptiveAsset(asset)
         if not force_save:
             try:

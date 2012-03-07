@@ -1,35 +1,13 @@
 """Tests for the asset cache."""
 
-import os.path, hashlib
+import hashlib
 
 from django.test import TestCase
-from django.utils.unittest import skipUnless
-from django.contrib.staticfiles import finders
 from django.core.files.storage import default_storage
 
-from optimizations.assetcache import StaticAsset, default_asset_cache
-from optimizations.thumbnailcache import open_image, default_thumbnail_cache
-
-
-def get_test_thumbnail_asset():
-    # Pick a random asset.
-    for finder in finders.get_finders():
-        for path, storage in finder.list(()):
-            lower_path = path.lower()
-            if lower_path.endswith(".jpg") or lower_path.endswith(".jpeg") or lower_path.endswith(".png"):
-                if getattr(storage, "prefix", None):
-                    path = os.path.join(storage.prefix, path)
-                asset = StaticAsset(path)
-                try:
-                    image_size = open_image(asset).size
-                except:
-                    continue
-                else:
-                    return asset, image_size
-    return None
-
-
-skipUnlessTestThumbnailAsset = skipUnless(get_test_thumbnail_asset(), "No static image assets could be found in the static files storage.")
+from optimizations.assetcache import default_asset_cache
+from optimizations.thumbnailcache import default_thumbnail_cache
+from optimizations.tests.base import skipUnlessTestThumbnailAsset, get_test_thumbnail_asset
 
 
 class ThumbnailCacheTest(TestCase):
