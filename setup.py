@@ -8,6 +8,7 @@ setup(
     author = "Dave Hall",
     author_email = "dave@etianen.com",
     url = "https://github.com/etianen/django-optimizations",
+    download_url = "http://github.com/downloads/etianen/django-optimizations/django-optimizations-1.0.0.tar.gz",
     zip_safe = False,
     packages = [
         "optimizations",
