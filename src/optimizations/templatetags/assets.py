@@ -7,7 +7,7 @@ from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveA
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
-from optimizations.templatetags import simple_tag, template_tag, assignment_tag
+from optimizations.templatetags import simple_tag, inclusion_tag, assignment_tag
 
 
 register = template.Library()
@@ -25,7 +25,7 @@ def get_asset(src):
     return default_asset_cache.get_url(src)
     
 
-@template_tag(register, "assets/img.html")
+@inclusion_tag(register, "assets/img.html")
 @assignment_tag(register, name="get_img")
 def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
     """Renders an image tag."""
@@ -57,7 +57,7 @@ def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
     return params
     
     
-@template_tag(register, "assets/script.html")
+@inclusion_tag(register, "assets/script.html")
 def script(src="default", **attrs):
     """Renders one or more script tags."""
     assets = StaticAsset.load("js", src)
@@ -68,7 +68,7 @@ def script(src="default", **attrs):
     }
     
     
-@template_tag(register, "assets/stylesheet.html")
+@inclusion_tag(register, "assets/stylesheet.html")
 def stylesheet(href="default", **attrs):
     """Renders one or more stylesheet tags."""
     assets = StaticAsset.load("css", href)
