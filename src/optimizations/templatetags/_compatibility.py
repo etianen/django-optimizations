@@ -83,10 +83,15 @@ def simple_tag_compat(register, takes_context, func, name):
 def inclusion_tag_compat(register, file_name, takes_context, func, name):
     """Compatibility shim for the Django 1.4 inclusion tab."""
     @wraps(func)
-    def do_inclusion_tag_compat(*args, **kwargs):
+    def do_inclusion_tag_compat(context, *args, **kwargs):
+        if takes_context:
+            args = (context,) + args
         context_params = func(*args, **kwargs)
+        csrf_token = context.get("csrf_token", None)
+        if csrf_token is not None:
+            context_params["csrf_token"] = csrf_token
         return template.loader.render_to_string(file_name, context_params)
-    return simple_tag_compat(register, takes_context, do_inclusion_tag_compat, name)
+    return simple_tag_compat(register, True, do_inclusion_tag_compat, name)
 
 
 def assignment_tag_compat(register, takes_context, func, name):
