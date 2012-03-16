@@ -2,10 +2,10 @@
 
 from django.test import TestCase
 
-from optimizations.javascriptcompiler import compile_js
+from optimizations.javascriptcompiler import default_javascript_compiler
 
 
 class JavascriptCompilerTest(TestCase):
     
     def testJavascriptCompiler(self):
-        self.assertEqual(compile_js("function(){var foo = 'foo';}"), 'function(){var a="foo"};')
+        self.assertEqual(default_javascript_compiler.compile("function(){var foo = 'foo';}"), 'function(){var a="foo"};')

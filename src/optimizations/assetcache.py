@@ -17,13 +17,14 @@ from django.contrib.staticfiles import storage
 from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
-from django.core.cache import get_cache, InvalidCacheBackendError, cache as default_cache
 from django.core.files.storage import get_storage_class
 
 try:
     staticfiles_storage = storage.staticfiles_storage
 except AttributeError:
-    staticfiles_storage = get_storage_class(settings.STATICFILES_STORAGE)()  # Django 1.3 compatibility. 
+    staticfiles_storage = get_storage_class(settings.STATICFILES_STORAGE)()  # Django 1.3 compatibility.
+    
+from optimizations.utils import resolve_namespaced_cache 
 
 
 def freeze_dict(params):
@@ -350,14 +351,11 @@ class AssetCache(object):
     
     """A cache of assets."""
     
-    def __init__(self, storage=default_storage, prefix="assets"):
+    def __init__(self, storage=default_storage, prefix="assets", cache_name="optimizations.assetcache"):
         """Initializes the asset cache."""
         self._storage = storage
         self._prefix = prefix
-        try:
-            self._cache = get_cache("optimizations.assetcache")
-        except InvalidCacheBackendError:
-            self._cache = default_cache
+        self._cache = resolve_namespaced_cache(cache_name)
     
     def get_name_and_meta(self, asset):
         """Returns the name and associated parameters of an asset."""

@@ -4,14 +4,13 @@ from urlparse import urlparse
 
 from django import template
 from django.utils.html import escape
-from django.conf import settings
 
 from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import simple_tag, inclusion_tag, assignment_tag
-from optimizations.javascriptcompiler import compile_js
+from optimizations.javascriptcompiler import default_javascript_compiler
 
 
 register = template.Library()
@@ -91,11 +90,9 @@ def script_async(src="default"):
     
     
 @register.filter
-def compile_script(source, timeout=None):
+def compile_script(source):
     """Compiles the given javascript source code."""
-    if settings.DEBUG:
-        return source
-    return compile_js(source)
+    return default_javascript_compiler.compile(source)
     
     
 @inclusion_tag(register, "assets/stylesheet.html")

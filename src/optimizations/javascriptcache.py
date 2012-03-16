@@ -5,7 +5,7 @@ from django.core.files.base import ContentFile
 
 from optimizations.assetcache import default_asset_cache, GroupedAsset
 from optimizations.assetcompiler import default_asset_compiler, AssetCompilerPluginBase
-from optimizations.javascriptcompiler import compile_js
+from optimizations.javascriptcompiler import default_javascript_compiler
 
 
 class JavascriptAsset(GroupedAsset):
@@ -29,7 +29,7 @@ class JavascriptAsset(GroupedAsset):
         """Saves this asset to the given storage."""
         if self._compile:
             contents = self.get_contents()
-            compiled_contents = compile_js(contents)
+            compiled_contents = default_javascript_compiler.compile(contents, cache=False, force_compile=True)
             # Write the output.
             storage.save(name, ContentFile(compiled_contents))
         else:
