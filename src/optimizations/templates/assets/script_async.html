@@ -1,4 +1,4 @@
-<script>
+{% load assets %}<script>{% filter compile_script %}
     (function(){
         var urls = [{% for url in urls %}"{{url|escapejs}}"{% if not forloop.last %},{% endif %}{% endfor %}]
         var firstScript = document.getElementsByTagName("script")[0];
@@ -10,4 +10,4 @@
             firstScript.parentNode.insertBefore(script, firstScript);
         }
     })();
-</script>
+{% endfilter %}</script>
