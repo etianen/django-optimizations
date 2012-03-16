@@ -99,3 +99,9 @@ class OptimizationsTemplateTagsTest(TestCase):
                 url = urls[0],
             ),
         )
+        
+    def testScripTagAbsoluteUrl(self):
+        self.assertEqual(
+            Template("{% load assets %}{% script 'http://www.example.com/example.js' %}").render(Context({})),
+            u'<script src="http://www.example.com/example.js"></script>',
+        )

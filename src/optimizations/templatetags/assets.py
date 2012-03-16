@@ -1,5 +1,7 @@
 """Template tags used for optimizing assets."""
 
+from urlparse import urlparse
+
 from django import template
 from django.utils.html import escape
 
@@ -55,16 +57,34 @@ def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
             
         })
     return params
+
+
+def resolve_script_src(src):
+    """Resolves the given src attribute of the script."""
+    if isinstance(src, basestring):
+        src_parts = urlparse(src)
+        if src_parts.scheme or src_parts.netloc:
+            return (src,)
+    assets = StaticAsset.load("js", src)
+    return default_javascript_cache.get_urls(assets)
     
     
 @inclusion_tag(register, "assets/script.html")
 def script(src="default", **attrs):
     """Renders one or more script tags."""
-    assets = StaticAsset.load("js", src)
-    urls = default_javascript_cache.get_urls(assets)
+    urls = resolve_script_src(src)
     return {
         "urls": urls,
         "attrs": attrs,
+    }
+    
+    
+@inclusion_tag(register, "assets/script_async.html")
+def script_async(src="default"):
+    """Renders an asyncronously-loading script tag."""
+    urls = resolve_script_src(src)
+    return {
+        "urls": urls,
     }
     
     
