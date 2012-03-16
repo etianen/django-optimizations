@@ -1,23 +1,11 @@
 """A cache of javascipt files, optionally compressed."""
 
-import subprocess, os.path
-
 from django.conf import settings
 from django.core.files.base import ContentFile
 
-import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset
 from optimizations.assetcompiler import default_asset_compiler, AssetCompilerPluginBase
-
-
-class JavascriptError(Exception):
-    
-    """Something went wrong with javascript compilation."""
-    
-    def __init__(self, message, detail_message):
-        """Initializes the javascript error."""
-        super(JavascriptError, self).__init__(message)
-        self.detail_message = detail_message
+from optimizations.javascriptcompiler import compile_js
 
 
 class JavascriptAsset(GroupedAsset):
@@ -41,19 +29,9 @@ class JavascriptAsset(GroupedAsset):
         """Saves this asset to the given storage."""
         if self._compile:
             contents = self.get_contents()
-            compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
-            process = subprocess.Popen(
-                ("java", "-jar", compressor_path, "--type", "js", "--charset", "utf-8", "-v"),
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-            )
-            stdoutdata, stderrdata = process.communicate(contents)
-            # Check it all worked.
-            if process.returncode != 0:
-                raise JavascriptError("Error while compiling javascript.", stderrdata)
+            compiled_contents = compile_js(contents)
             # Write the output.
-            storage.save(name, ContentFile(stdoutdata))
+            storage.save(name, ContentFile(compiled_contents))
         else:
             # Just save the joined code.
             super(JavascriptAsset, self).save(storage, name, meta)
