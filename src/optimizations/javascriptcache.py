@@ -29,7 +29,7 @@ class JavascriptAsset(GroupedAsset):
         """Saves this asset to the given storage."""
         if self._compile:
             contents = self.get_contents()
-            compiled_contents = default_javascript_compiler.compile(contents, cache=False, force_compile=True)
+            compiled_contents = default_javascript_compiler.compile(contents, force_compile=True)
             # Write the output.
             storage.save(name, ContentFile(compiled_contents))
         else:

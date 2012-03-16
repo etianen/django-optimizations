@@ -1,13 +1,13 @@
-{% load assets %}<script>{% filter compile_script %}
+{% load assets %}<script>
     (function(){
-        var urls = [{% for url in urls %}"{{url|escapejs}}"{% if not forloop.last %},{% endif %}{% endfor %}]
-        var firstScript = document.getElementsByTagName("script")[0];
-        var script, n;
-        for (n = 0; n < urls.length; n++) {
-            script = document.createElement("script");
-            script.async = {% if urls|length == 1 %}true{% else %}false{% endif %};
-            script.src = urls[n];
-            firstScript.parentNode.insertBefore(script, firstScript);
+        var l = [{% for url in urls %}"{{url|escapejs}}"{% if not forloop.last %},{% endif %}{% endfor %}]
+        var a = document.getElementsByTagName("script")[0];
+        var s, n;
+        for (n = 0; n < l.length; n++) {
+            s = document.createElement("script");
+            s.async = {% if urls|length == 1 %}true{% else %}false{% endif %};
+            s.src = l[n];
+            a.parentNode.insertBefore(s, a);
         }
     })();
-{% endfilter %}</script>
+</script>

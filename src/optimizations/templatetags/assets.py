@@ -89,12 +89,6 @@ def script_async(src="default"):
     }
     
     
-@register.filter
-def compile_script(source):
-    """Compiles the given javascript source code."""
-    return default_javascript_compiler.compile(source)
-    
-    
 @inclusion_tag(register, "assets/stylesheet.html")
 def stylesheet(href="default", **attrs):
     """Renders one or more stylesheet tags."""
