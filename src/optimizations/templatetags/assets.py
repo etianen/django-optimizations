@@ -59,20 +59,31 @@ def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
     return params
 
 
-def resolve_script_src(src):
+def is_url(s):
+    """Checks if the given string is a URL."""
+    if not isinstance(s, basestring):
+        return False
+    src_parts = urlparse(s)
+    return src_parts.scheme or src_parts.netloc
+
+
+def resolve_script_src(src, _src):
     """Resolves the given src attribute of the script."""
-    if isinstance(src, basestring):
-        src_parts = urlparse(src)
-        if src_parts.scheme or src_parts.netloc:
-            return (src,)
-    assets = StaticAsset.load("js", src)
+    all_src = (src,) + _src
+    src_urls = filter(is_url, all_src)
+    if src_urls:
+        if len(src_urls) == len(all_src):
+            return all_src  # All are URLs, which is allowed.
+        else:
+            raise ValueError("Mixed assets and absolute URLs are not allowed in script tags.")
+    assets = StaticAsset.load("js", all_src)
     return default_javascript_cache.get_urls(assets)
     
     
 @inclusion_tag(register, "assets/script.html")
-def script(src="default", **attrs):
+def script(src="default", *_src, **attrs):
     """Renders one or more script tags."""
-    urls = resolve_script_src(src)
+    urls = resolve_script_src(src, _src)
     return {
         "urls": urls,
         "attrs": attrs,
@@ -80,19 +91,27 @@ def script(src="default", **attrs):
     
     
 @inclusion_tag(register, "assets/script_async.html")
-def script_async(src="default"):
+def script_async(src="default", *_src):
     """Renders an asyncronously-loading script tag."""
-    urls = resolve_script_src(src)
+    urls = resolve_script_src(src, _src)
     return {
         "urls": urls,
     }
     
     
 @inclusion_tag(register, "assets/stylesheet.html")
-def stylesheet(href="default", **attrs):
+def stylesheet(href="default", *_href, **attrs):
     """Renders one or more stylesheet tags."""
-    assets = StaticAsset.load("css", href)
-    urls = default_stylesheet_cache.get_urls(assets)
+    all_href = (href,) + _href
+    href_urls = filter(is_url, all_href)
+    if href_urls:
+        if len(href_urls) == len(all_href):
+            urls = all_href  # All are URLs, which is allowed.
+        else:
+            raise ValueError("Mixed assets and absolute URLs are not allowed in stylesheet tags.")
+    else:
+        assets = StaticAsset.load("css", all_href)
+        urls = default_stylesheet_cache.get_urls(assets)
     return {
         "urls": urls,
         "attrs": attrs,
