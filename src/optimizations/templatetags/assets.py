@@ -10,7 +10,6 @@ from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import simple_tag, inclusion_tag, assignment_tag
-from optimizations.javascriptcompiler import default_javascript_compiler
 
 
 register = template.Library()
