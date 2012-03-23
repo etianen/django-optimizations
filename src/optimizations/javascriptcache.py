@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.core.files.base import ContentFile
 
-from optimizations.assetcache import default_asset_cache, GroupedAsset
+from optimizations.assetcache import default_asset_cache, GroupedAsset, AdaptiveAsset
 from optimizations.assetcompiler import default_asset_compiler, AssetCompilerPluginBase
 from optimizations.javascriptcompiler import default_javascript_compiler
 
@@ -51,7 +51,7 @@ class JavascriptCache(object):
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(JavascriptAsset(assets, compile), force_save=True)]
+                return [self._asset_cache.get_url(JavascriptAsset(map(AdaptiveAsset, assets), compile), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 
 import optimizations
-from optimizations.assetcache import default_asset_cache, GroupedAsset
+from optimizations.assetcache import default_asset_cache, GroupedAsset, AdaptiveAsset
 from optimizations.assetcompiler import AssetCompilerPluginBase, default_asset_compiler
 
 
@@ -109,7 +109,7 @@ class StylesheetCache(object):
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(StylesheetAsset(assets, compile), force_save=True)]    
+                return [self._asset_cache.get_url(StylesheetAsset(map(AdaptiveAsset, assets), compile), force_save=True)]    
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         
