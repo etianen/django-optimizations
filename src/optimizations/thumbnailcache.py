@@ -187,14 +187,18 @@ class ThumbnailAsset(Asset):
                 if isinstance(ex, IOError):
                     raise
                 raise IOError(str(ex))
+            # Parse the image format.
+            _, extension = os.path.splitext(name)
+            format = extension.lstrip(".").upper().replace("JPG", "JPEG") or "PNG"
+            # If we're saving to PNG, make sure we're not in CMYK.
+            if image_data.mode == "CMYK" and format == "PNG":
+                image_data = image_data.convert("RGB")
             # If the storage has a path, then save it efficiently.
             try:
                 thumbnail_path = storage.path(name)
             except NotImplementedError:
                 # No path for the storage, so save it in a memory buffer.
                 buffer = StringIO()
-                _, extension = os.path.splitext(name)
-                format = extension.lstrip(".").upper().replace("jpg", "jpeg")
                 try:
                     image_data.save(buffer, format)
                 except Exception as ex:    # HACK: PIL raises all sorts of Exceptions :(
@@ -215,7 +219,7 @@ class ThumbnailAsset(Asset):
                 except OSError:
                     pass
                 try:
-                    image_data.save(thumbnail_path)
+                    image_data.save(thumbnail_path, format)
                 except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
                     try:
                         if isinstance(ex, IOError):
