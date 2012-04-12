@@ -307,14 +307,14 @@ class GroupedAsset(Asset):
         """"Returns the params which should be used to generate the id."""
         params = {}
         # Add in the assets.
-        for asset in self._assets:
+        for n, asset in enumerate(self._assets):
             params.update(
                 (u"{n}_{key}".format(
                     n = n,
-                    key = item[0],
-                ), item[1])
-                for n, item
-                in enumerate(asset._get_and_check_id_params().iteritems())
+                    key = key,
+                ), value)
+                for key, value
+                in asset._get_and_check_id_params().iteritems()
             )
         # All done.
         return params
