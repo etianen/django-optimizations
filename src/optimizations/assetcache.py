@@ -327,6 +327,10 @@ class GroupedAsset(Asset):
         """Loads all the js code."""
         return self.join_str.join(asset.get_contents() for asset in self._assets)
     
+    def get_hash(self):
+        """Returns the sha1 hash of this asset's contents."""
+        return hashlib.sha1("".join(asset.get_hash() for asset in self._assets)).hexdigest()
+    
     def open(self):
         """Returns an open file pointer."""
         return ContentFile(self.get_contents())
