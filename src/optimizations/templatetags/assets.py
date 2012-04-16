@@ -10,6 +10,7 @@ from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL, 
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import simple_tag, inclusion_tag, assignment_tag
+from optimizations.videocache import default_video_cache, PROPORTIONAL as VIDEO_PROPORTIONAL, JPEG_FORMAT, VideoError
 
 
 register = template.Library()
@@ -56,6 +57,25 @@ def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
             "height": thumbnail.height,
             
         })
+    return params
+
+
+@inclusion_tag(register, "assets/img.html")
+@assignment_tag(register, name="get_video_img")
+def video_img(src, width, height, method=VIDEO_PROPORTIONAL, alt="", **attrs):
+    """Renders an image tag from the given video."""
+    params = {
+        "alt": alt,
+        "attrs": attrs,
+        "width": width,
+        "height": height,
+    }
+    try:
+        url = default_video_cache.get_url(src, width, height, method, format=JPEG_FORMAT)
+    except VideoError:
+        asset = AdaptiveAsset(src)
+        url = asset.get_url(),
+    params["url"] = url
     return params
 
 

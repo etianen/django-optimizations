@@ -187,7 +187,7 @@ class VideoCache(object):
         """Initializes the video cache."""
         self._asset_cache = asset_cache
         
-    def get_video(self, asset, width=None, height=None, method=PAD, format=MP4_FORMAT, offset=None):
+    def _get_video_asset(self, asset, width=None, height=None, method=PAD, format=MP4_FORMAT, offset=None):
         """
         Returns a processed video from the given video.
         """
@@ -210,7 +210,15 @@ class VideoCache(object):
         # Adapt the asset.
         asset = AdaptiveAsset(asset)
         # Create the video.
-        return self._asset_cache.get_path(VideoAsset(asset, width, height, method, format, offset), force_save=True)
+        return VideoAsset(asset, width, height, method, format, offset)
+    
+    def get_path(self, *args, **kwargs):
+        """Returns the path of the given video asset."""
+        return self._asset_cache.get_path(self._get_video_asset(*args, **kwargs), force_save=True)
+    
+    def get_url(self, *args, **kwargs):
+        """Returns the URL of the given video asset."""
+        return self._asset_cache.get_url(self._get_video_asset(*args, **kwargs), force_save=True)
         
         
 # The default video cache.
