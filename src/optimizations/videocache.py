@@ -61,13 +61,13 @@ _methods = {
 
 # Video format callbacks.
 
-def _format_jpeg(input_handle, offset):
+def _format_jpeg(input_path, offset):
     """Formats video to a jpeg thumbnail."""
     # Get the video duration.
     if offset is None:
         process = subprocess.Popen(
-            ("ffmpeg", "-i", "-"),
-            stdin = input_handle,
+            ("ffmpeg", "-i", input_path),
+            stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
         )
@@ -81,14 +81,21 @@ def _format_jpeg(input_handle, offset):
             duration = 0
         offset = duration / 4
     return offset, ("-vframes", "1", "-an", "-f", "image2",)
+
+
+def _format_mp4(input_path, offset):
+    """Formats the video to an MP4."""
+    return offset, ("-f", "mp4",)
     
     
 JPEG_FORMAT = "jpeg"
+MP4_FORMAT = "mp4"
 
 FormatMethod = collections.namedtuple("FormatMethod", ("get_format_params", "extension", "hash_key",))
 
 _formats = {
     JPEG_FORMAT: FormatMethod(_format_jpeg, "jpg", "jpeg"),
+    MP4_FORMAT: FormatMethod(_format_mp4, "mp4", "mp4"),
 }
 
     
@@ -134,62 +141,43 @@ class VideoAsset(Asset):
         """Saves the video."""
         # Get the input handle.
         try:
-            input_handle = open(self._asset.get_path(), "rb")
+            input_path = self._asset.get_path()
         except NotImplementedError:
-            # We need to buffer the lot in memory...
-            input_handle = StringIO(self._asset.get_contents())
-        # Process the handles.
-        with closing(input_handle):
-            # Get the output handle.
+            raise VideoError("Video cache cannot operate on remote filesystems")
+        # Calculate sizes.
+        if self._width is not None or self._height is not None:
+            size_params = self._method.get_size_params(self._width or "iw", self._height or "ih")
+        else:
+            size_params = ()
+        # Calculate offset and format.
+        offset, format_params = self._format.get_format_params(input_path, self._offset)
+        # Get the output path.
+        try:
+            output_path = storage.path(name)
+        except NotImplementedError:
+            raise VideoError("Video cache cannot operate on remote filesystems")
+        try:
+            os.makedirs(os.path.dirname(output_path))
+        except OSError:
+            pass
+        # Generate the video.
+        process = subprocess.Popen(
+            ("ffmpeg", "-ss", str(offset or 0), "-i", input_path,) + size_params + format_params + (output_path,),
+            stdin = subprocess.PIPE,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+        )
+        stdoutdata, stderrdata = process.communicate()
+        if process.returncode != 0:
             try:
-                output_path = storage.path(name)
-            except NotImplementedError:
-                # We need to buffer the output in memory.
-                output_handle = StringIO()
-                is_streaming = False
-            else:
+                raise VideoError("Could not generate video due to video processing error", " ".join((stdoutdata, stderrdata,)))
+            finally:
+                # Remove an incomplete file, if present.
                 try:
-                    os.makedirs(os.path.dirname(output_path))
-                except OSError:
+                    os.unlink(output_path)
+                except:
                     pass
-                output_handle = open(output_path, "wb")
-                is_streaming = True
-            # Calculate sizes.
-            if self._width is not None or self._height is not None:
-                size_params = self._method.get_size_params(self._width or "iw", self._height or "ih")
-            else:
-                size_params = ()
-            # Calculate offset and format.
-            offset, format_params = self._format.get_format_params(input_handle, self._offset)
-            # Generate the video.
-            with closing(output_handle):
-                input_handle.seek(0)
-                process = subprocess.Popen(
-                    ("ffmpeg", "-ss", str(offset), "-i", "-",) + size_params + format_params + ("-",),
-                    stdin = input_handle,
-                    stdout = output_handle,
-                    stderr = subprocess.PIPE,
-                )
-                _, stderrdata = process.communicate()
-                if process.returncode != 0:
-                    try:
-                        raise VideoError("Could not generate video due to image processing error", stderrdata)
-                    finally:
-                        if is_streaming:
-                            # Remove an incomplete file, if present.
-                            try:
-                                os.unlink(output_path)
-                            except:
-                                pass
-                # Save non-streaming data.
-                if not is_streaming:
-                    output_handle.seek(0, os.SEEK_END)
-                    output_handle_length = buffer.tell()
-                    output_handle.seek(0)
-                    file = File(buffer)
-                    file.size = output_handle_length
-                    storage.save(name, file)
-            
+        
             
 class VideoCache(object):
 
@@ -199,7 +187,7 @@ class VideoCache(object):
         """Initializes the video cache."""
         self._asset_cache = asset_cache
         
-    def get_video(self, asset, width=None, height=None, method=PROPORTIONAL, format=JPEG_FORMAT, offset=None):
+    def get_video(self, asset, width=None, height=None, method=PAD, format=MP4_FORMAT, offset=None):
         """
         Returns a processed video from the given video.
         """
