@@ -26,46 +26,22 @@ RE_DURATION = re.compile("Duration:\s*(\d+):(\d+):(\d+)", re.IGNORECASE)
 
 def _size(width, height):
     """Performs a non-proportional resize."""
-    if width is not None and height is not None:
-        return ("-vf", r"scale=min({width}\,iw):min({height}\,ih)".format(width=width, height=height))
-    elif width is not None:
-        return ("-vf", r"scale=min({width}\,iw):-1".format(width=width))
-    elif height is not None:
-        return ("-vf", r"scale=-1:min({height}\,ih)".format(height=height))
+    return ("-vf", r"scale={width}:{height}".format(width=width, height=height))
     
 
 def _size_proportional(width, height):
     """Performs a proportional resize."""
-    if width is not None and height is not None:
-        return ("-vf", r"scale=min(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):min(min({width}\,iw)/(iw/ih)\,min({height}\,ih))".format(width=width, height=height))
-    elif width is not None:
-        return ("-vf", r"scale=min({width}\,iw):-1".format(width=width))
-    elif height is not None:
-        return ("-vf", r"scale=-1:min({height}\,ih)".format(height=height))
+    return ("-vf", r"scale=min({height}*(iw/ih)\,{width}):min({width}/(iw/ih)\,{height})".format(width=width, height=height))
     
     
 def _size_crop(width, height):
     """Performs a cropping resize."""
-    if width is None:
-        width = "iw"
-    if height is  None:
-        height = "ih"
-    return (
-        "-vf",
-        r"scale=max(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):max(min({width}\,iw)/(iw/ih)\,min({height}\,ih)),crop={width}:{height}".format(width=width, height=height),
-    )
+    return ("-vf", r"scale=max({height}*(iw/ih)\,{width}):max({width}/(iw/ih)\,{height}),crop={width}:{height}".format(width=width, height=height),)
     
 
 def _size_pad(width, height):
     """Performs a padded resize."""
-    if width is None:
-        width = "iw"
-    if height is  None:
-        height = "ih"
-    return (
-        "-vf",
-        r"scale=min(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):min(min({width}\,iw)/(iw/ih)\,min({height}\,ih)),pad={width}:{height}:({width}-iw)/2:({height}-ih)/2".format(width=width, height=height),
-    )
+    return ("-vf", r"scale=min({height}*(iw/ih)\,{width}):min({width}/(iw/ih)\,{height}),pad={width}:{height}:({width}-iw)/2:({height}-ih)/2".format(width=width, height=height),)
     
     
 PROPORTIONAL = "proportional"
@@ -166,7 +142,7 @@ class VideoThumbnailAsset(Asset):
                 input_handle.seek(0)
                 # Calculate sizes.
                 if self._width is not None or self._height is not None:
-                    size_params = self._method.get_size_params(self._width, self._height)
+                    size_params = self._method.get_size_params(self._width or "iw", self._height or "ih")
                 else:
                     size_params = ()
                 process = subprocess.Popen(
