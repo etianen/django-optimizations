@@ -57,6 +57,40 @@ _methods = {
     CROP: ResizeMethod(_size_crop, "crop"),
     PAD: ResizeMethod(_size_pad, "pad"),
 }
+
+
+# Video format callbacks.
+
+def _format_jpeg(input_handle, offset):
+    """Formats video to a jpeg thumbnail."""
+    # Get the video duration.
+    if offset is None:
+        process = subprocess.Popen(
+            ("ffmpeg", "-i", "-"),
+            stdin = input_handle,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+        )
+        stdoutdata, stderrdata = process.communicate()
+        duration_match = RE_DURATION.search(" ".join((stdoutdata, stderrdata,)))
+        if duration_match:
+            hours, minutes, seconds = duration_match.groups()
+            duration = int(hours) * 60 * 60 + int(minutes) * 60 * 60 + int(seconds)
+        else:
+            # Fallback - we can't parse the time, so assume 0 seconds.
+            duration = 0
+        offset = duration / 4
+    return offset, ("-vframes", "1", "-an", "-f", "image2",)
+    
+    
+JPEG_FORMAT = "jpeg"
+
+FormatMethod = collections.namedtuple("FormatMethod", ("get_format_params", "extension", "hash_key",))
+
+_formats = {
+    JPEG_FORMAT: FormatMethod(_format_jpeg, "jpg", "jpeg"),
+}
+
     
 
 # The video asset.    
@@ -65,13 +99,14 @@ class VideoAsset(Asset):
     
     """A video asset."""
     
-    def __init__(self, asset, width, height, method, position=None):
+    def __init__(self, asset, width, height, method, format, offset):
         """Initializes the video asset."""
         self._asset = asset
         self._width = width
         self._height = height
         self._method = method
-        self._position = position
+        self._format = format
+        self._offset = offset
         
     def get_name(self):
         """Returns the name of this asset."""
@@ -87,12 +122,13 @@ class VideoAsset(Asset):
         params["width"] = self._width is None and -1 or self._width
         params["height"] = self._height is None and -1 or self._height
         params["method"] = self._method.hash_key
-        params["position"] = self._position is None and -1 or self._position
+        params["format"] = self._format.hash_key
+        params["offset"] = self._offset is None and -1 or self._offset
         return params
     
     def get_save_extension(self):
         """Returns the file extension to use when saving the asset."""
-        return ".jpg"
+        return "." + self._format.extension
     
     def save(self, storage, name, meta):
         """Saves the video."""
@@ -104,25 +140,6 @@ class VideoAsset(Asset):
             input_handle = StringIO(self._asset.get_contents())
         # Process the handles.
         with closing(input_handle):
-            # Get the video duration.
-            if self._position is None:
-                process = subprocess.Popen(
-                    ("ffmpeg", "-i", "-"),
-                    stdin = input_handle,
-                    stdout = subprocess.PIPE,
-                    stderr = subprocess.PIPE,
-                )
-                stdoutdata, stderrdata = process.communicate()
-                duration_match = RE_DURATION.search(" ".join((stdoutdata, stderrdata,)))
-                if duration_match:
-                    hours, minutes, seconds = duration_match.groups()
-                    duration = int(hours) * 60 * 60 + int(minutes) * 60 * 60 + int(seconds)
-                else:
-                    # Fallback - we can't parse the time, so assume 0 seconds.
-                    duration = 0
-                position = duration / 4
-            else:
-                position = self._position
             # Get the output handle.
             try:
                 output_path = storage.path(name)
@@ -137,21 +154,23 @@ class VideoAsset(Asset):
                     pass
                 output_handle = open(output_path, "wb")
                 is_streaming = True
+            # Calculate sizes.
+            if self._width is not None or self._height is not None:
+                size_params = self._method.get_size_params(self._width or "iw", self._height or "ih")
+            else:
+                size_params = ()
+            # Calculate offset and format.
+            offset, format_params = self._format.get_format_params(input_handle, self._offset)
+            # Generate the video.
             with closing(output_handle):
-                # Generate the video.
                 input_handle.seek(0)
-                # Calculate sizes.
-                if self._width is not None or self._height is not None:
-                    size_params = self._method.get_size_params(self._width or "iw", self._height or "ih")
-                else:
-                    size_params = ()
                 process = subprocess.Popen(
-                    ("ffmpeg", "-ss", str(position), "-i", "-",) + size_params + ("-vframes", "1", "-an", "-f", "image2", "-",),
+                    ("ffmpeg", "-ss", str(offset), "-i", "-",) + size_params + format_params + ("-",),
                     stdin = input_handle,
                     stdout = output_handle,
                     stderr = subprocess.PIPE,
                 )
-                stdoutdata, stderrdata = process.communicate()
+                _, stderrdata = process.communicate()
                 if process.returncode != 0:
                     try:
                         raise VideoError("Could not generate video due to image processing error", stderrdata)
@@ -180,7 +199,7 @@ class VideoCache(object):
         """Initializes the video cache."""
         self._asset_cache = asset_cache
         
-    def get_video(self, asset, width=None, height=None, method=PROPORTIONAL, position=None):
+    def get_video(self, asset, width=None, height=None, method=PROPORTIONAL, format=JPEG_FORMAT, offset=None):
         """
         Returns a processed video from the given video.
         """
@@ -192,10 +211,18 @@ class VideoCache(object):
                 method = method,
                 methods = ", ".join(_methods.iterkeys())
             ))
+        # Lookup the format.
+        try:
+            format = _formats[format]
+        except KeyError:
+            raise ValueError("{format} is not a valid video format. Should be one of {formats}.".format(
+                format = format,
+                formats = ", ".join(_formats.iterkeys())
+            ))
         # Adapt the asset.
         asset = AdaptiveAsset(asset)
         # Create the video.
-        return self._asset_cache.get_path(VideoAsset(asset, width, height, method, position), force_save=True)
+        return self._asset_cache.get_path(VideoAsset(asset, width, height, method, format, offset), force_save=True)
         
         
 # The default video cache.
