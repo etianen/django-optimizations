@@ -55,10 +55,23 @@ def _size_crop(width, height):
         r"scale=max(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):max(min({width}\,iw)/(iw/ih)\,min({height}\,ih)),crop={width}:{height}".format(width=width, height=height),
     )
     
+
+def _size_pad(width, height):
+    """Performs a padded resize."""
+    if width is None:
+        width = "iw"
+    if height is  None:
+        height = "ih"
+    return (
+        "-vf",
+        r"scale=min(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):min(min({width}\,iw)/(iw/ih)\,min({height}\,ih)),pad={width}:{height}:({width}-iw)/2:({height}-ih)/2".format(width=width, height=height),
+    )
+    
     
 PROPORTIONAL = "proportional"
 RESIZE = "resize"
 CROP = "crop"
+PAD = "pad"
 
 ResizeMethod = collections.namedtuple("ResizeMethod", ("get_size_params", "hash_key",))
 
@@ -66,6 +79,7 @@ _methods = {
     PROPORTIONAL: ResizeMethod(_size_proportional, "proportional"),
     RESIZE: ResizeMethod(_size, "resize"),
     CROP: ResizeMethod(_size_crop, "crop"),
+    PAD: ResizeMethod(_size_pad, "pad"),
 }
     
 
