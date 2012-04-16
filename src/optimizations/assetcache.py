@@ -131,6 +131,11 @@ class Asset(object):
     def get_save_meta(self):
         """Returns the meta parameters to associate with the asset in the asset cache."""
         return {}
+    
+    def get_save_extension(self):
+        """Returns the file extension to use when saving the asset."""
+        _, asset_ext = os.path.splitext(self.get_name())
+        return asset_ext.lower()
         
     def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
@@ -368,9 +373,8 @@ class AssetCache(object):
         name_and_meta = self._cache.get(asset_cache_key)
         if name_and_meta is None:
             # Generate the name.
-            asset_name = asset.get_name()
             asset_hash = asset.get_hash()
-            _, asset_ext = os.path.splitext(asset_name)
+            asset_ext = asset.get_save_extension()
             name = u"{prefix}/{folder}/{hash}{ext}".format(
                 prefix = self._prefix,
                 folder = asset_hash[:2],
