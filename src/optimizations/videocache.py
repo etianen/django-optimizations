@@ -59,14 +59,14 @@ _methods = {
 }
     
 
-# The video thumbnail asset.    
+# The video asset.    
     
-class VideoThumbnailAsset(Asset):
+class VideoAsset(Asset):
     
-    """A video thumbnail asset."""
+    """A video asset."""
     
     def __init__(self, asset, width, height, method, position=None):
-        """Initializes the video thumbnail asset."""
+        """Initializes the video asset."""
         self._asset = asset
         self._width = width
         self._height = height
@@ -83,7 +83,7 @@ class VideoThumbnailAsset(Asset):
     
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
-        params = super(VideoThumbnailAsset, self).get_id_params()
+        params = super(VideoAsset, self).get_id_params()
         params["width"] = self._width is None and -1 or self._width
         params["height"] = self._height is None and -1 or self._height
         params["method"] = self._method.hash_key
@@ -95,7 +95,7 @@ class VideoThumbnailAsset(Asset):
         return ".jpg"
     
     def save(self, storage, name, meta):
-        """Saves the video thumbnail."""
+        """Saves the video."""
         # Get the input handle.
         try:
             input_handle = open(self._asset.get_path(), "rb")
@@ -138,7 +138,7 @@ class VideoThumbnailAsset(Asset):
                 output_handle = open(output_path, "wb")
                 is_streaming = True
             with closing(output_handle):
-                # Generate the thumbnail.
+                # Generate the video.
                 input_handle.seek(0)
                 # Calculate sizes.
                 if self._width is not None or self._height is not None:
@@ -154,7 +154,7 @@ class VideoThumbnailAsset(Asset):
                 stdoutdata, stderrdata = process.communicate()
                 if process.returncode != 0:
                     try:
-                        raise VideoError("Could not generate video thumbnail due to image processing error", stderrdata)
+                        raise VideoError("Could not generate video due to image processing error", stderrdata)
                     finally:
                         if is_streaming:
                             # Remove an incomplete file, if present.
@@ -172,31 +172,31 @@ class VideoThumbnailAsset(Asset):
                     storage.save(name, file)
             
             
-class VideoThumbnailCache(object):
+class VideoCache(object):
 
-    """A cache of thumbnailed videos."""
+    """A cache of videos."""
     
     def __init__(self, asset_cache=default_asset_cache):
-        """Initializes the video thumbnail cache."""
+        """Initializes the video cache."""
         self._asset_cache = asset_cache
         
-    def get_video_thumbnail(self, asset, width=None, height=None, method=PROPORTIONAL, position=None):
+    def get_video(self, asset, width=None, height=None, method=PROPORTIONAL, position=None):
         """
-        Returns a thumbnail of the given video.
+        Returns a processed video from the given video.
         """
         # Lookup the method.
         try:
             method = _methods[method]
         except KeyError:
-            raise ValueError("{method} is not a valid video thumbnail method. Should be one of {methods}.".format(
+            raise ValueError("{method} is not a valid video method. Should be one of {methods}.".format(
                 method = method,
                 methods = ", ".join(_methods.iterkeys())
             ))
         # Adapt the asset.
         asset = AdaptiveAsset(asset)
-        # Create the thumbnail.
-        return self._asset_cache.get_path(VideoThumbnailAsset(asset, width, height, method, position), force_save=True)
+        # Create the video.
+        return self._asset_cache.get_path(VideoAsset(asset, width, height, method, position), force_save=True)
         
         
-# The default video thumbnail cache.
-default_video_thumbnail_cache = VideoThumbnailCache()
+# The default video cache.
+default_video_cache = VideoCache()
