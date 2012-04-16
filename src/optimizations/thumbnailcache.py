@@ -118,7 +118,7 @@ ResizeMethod = collections.namedtuple("ResizeMethod", ("get_display_size", "get_
 
 _methods = {
     PROPORTIONAL: ResizeMethod(_size_proportional, _size, _resize, "resize"),
-    RESIZE: ResizeMethod(_size, _size, _resize, "resized"),
+    RESIZE: ResizeMethod(_size, _size, _resize, "resize"),
     CROP: ResizeMethod(_size, _size_proportional, _resize_cropped, "crop"),
 }
 

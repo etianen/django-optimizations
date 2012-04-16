@@ -1,6 +1,6 @@
 """Video processing and resizing tools using ffmpeg."""
 
-import subprocess, re, os
+import subprocess, re, os, collections
 from contextlib import closing
 from cStringIO import StringIO
 
@@ -20,15 +20,55 @@ class VideoError(Exception):
 
 
 RE_DURATION = re.compile("Duration:\s*(\d+):(\d+):(\d+)", re.IGNORECASE)
+
+
+# Size adjustment callbacks.
+
+def _size(width, height):
+    """Performs a non-proportional resize."""
+    if width is not None and height is not None:
+        return ("-vf", r"scale=min({width}\,iw):min({height}\,ih)".format(width=width, height=height))
+    elif width is not None:
+        return ("-vf", r"scale=min({width}\,iw):-1".format(width=width))
+    elif height is not None:
+        return ("-vf", r"scale=-1:min({height}\,ih)".format(height=height))
+    assert False
     
+
+def _size_proportional(width, height):
+    """Performs a proportional resize."""
+    if width is not None and height is not None:
+        return ("-vf", r"scale=min(min({height}\,ih)*(iw/ih)\,min({width}\,iw)):min(min({width}\,iw)/(iw/ih)\,min({height}\,ih))".format(width=width, height=height))
+    elif width is not None:
+        return ("-vf", r"scale=min({width}\,iw):-1".format(width=width))
+    elif height is not None:
+        return ("-vf", r"scale=-1:min({height}\,ih)".format(height=height))
+    assert False
+    
+    
+PROPORTIONAL = "proportional"
+RESIZE = "resize"
+
+ResizeMethod = collections.namedtuple("ResizeMethod", ("get_size_params", "hash_key",))
+
+_methods = {
+    PROPORTIONAL: ResizeMethod(_size_proportional, "proportional"),
+    RESIZE: ResizeMethod(_size, "resize"),
+}
+    
+
+# The video thumbnail asset.    
     
 class VideoThumbnailAsset(Asset):
     
     """A video thumbnail asset."""
     
-    def __init__(self, asset, position=None):
+    def __init__(self, asset, width, height, method, position=None):
         """Initializes the video thumbnail asset."""
         self._asset = asset
+        self._width = width
+        self._height = height
+        self._method = method
         self._position = position
         
     def get_name(self):
@@ -42,6 +82,9 @@ class VideoThumbnailAsset(Asset):
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(VideoThumbnailAsset, self).get_id_params()
+        params["width"] = self._width is None and -1 or self._width
+        params["height"] = self._height is None and -1 or self._height
+        params["method"] = self._method.hash_key
         params["position"] = self._position is None and -1 or self._position
         return params
     
@@ -95,8 +138,13 @@ class VideoThumbnailAsset(Asset):
             with closing(output_handle):
                 # Generate the thumbnail.
                 input_handle.seek(0)
+                # Calculate sizes.
+                if self._width is not None or self._height is not None:
+                    size_params = self._method.get_size_params(self._width, self._height)
+                else:
+                    size_params = ()
                 process = subprocess.Popen(
-                    ("ffmpeg", "-ss", str(position), "-i", "-", "-vframes", "1", "-an", "-f", "image2", "-",),
+                    ("ffmpeg", "-ss", str(position), "-i", "-",) + size_params + ("-vframes", "1", "-an", "-f", "image2", "-",),
                     stdin = input_handle,
                     stdout = output_handle,
                     stderr = subprocess.PIPE,
@@ -130,14 +178,22 @@ class VideoThumbnailCache(object):
         """Initializes the video thumbnail cache."""
         self._asset_cache = asset_cache
         
-    def get_video_thumbnail(self, asset, position=None):
+    def get_video_thumbnail(self, asset, width=None, height=None, method=PROPORTIONAL, position=None):
         """
         Returns a thumbnail of the given video.
         """
+        # Lookup the method.
+        try:
+            method = _methods[method]
+        except KeyError:
+            raise ValueError("{method} is not a valid video thumbnail method. Should be one of {methods}.".format(
+                method = method,
+                methods = ", ".join(_methods.iterkeys())
+            ))
         # Adapt the asset.
         asset = AdaptiveAsset(asset)
         # Create the thumbnail.
-        return self._asset_cache.get_path(VideoThumbnailAsset(asset, position), force_save=True)
+        return self._asset_cache.get_path(VideoThumbnailAsset(asset, width, height, method, position), force_save=True)
         
         
 # The default video thumbnail cache.
