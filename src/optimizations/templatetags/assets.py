@@ -6,7 +6,7 @@ from django import template
 from django.utils.html import escape
 
 from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
-from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL
+from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL, ThumbnailError
 from optimizations.javascriptcache import default_javascript_cache
 from optimizations.stylesheetcache import default_stylesheet_cache
 from optimizations.templatetags import simple_tag, inclusion_tag, assignment_tag
@@ -42,7 +42,7 @@ def img(src, width=None, height=None, method=PROPORTIONAL, alt="", **attrs):
             height = height,
             method = method,
         )
-    except IOError:
+    except ThumbnailError:
         asset = AdaptiveAsset(src)
         params.update({
             "url": asset.get_url(),

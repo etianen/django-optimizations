@@ -123,6 +123,11 @@ _methods = {
 }
 
 
+class ThumbnailError(Exception):
+    
+    """Something went wrong with thumbnail generation."""
+
+
 class ThumbnailAsset(Asset):
     
     """An asset representing a thumbnailed file."""
@@ -184,9 +189,7 @@ class ThumbnailAsset(Asset):
             try:
                 image_data = method.do_resize(image_data, original_size, display_size, data_size)
             except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
-                if isinstance(ex, IOError):
-                    raise
-                raise IOError(str(ex))
+                raise ThumbnailError(str(ex))
             # Parse the image format.
             _, extension = os.path.splitext(name)
             format = extension.lstrip(".").upper().replace("JPG", "JPEG") or "PNG"
@@ -202,9 +205,7 @@ class ThumbnailAsset(Asset):
                 try:
                     image_data.save(buffer, format)
                 except Exception as ex:    # HACK: PIL raises all sorts of Exceptions :(
-                    if isinstance(ex, IOError):
-                        raise
-                    raise IOError(str(ex))
+                    raise ThumbnailError(str(ex))
                 # Write the file.
                 buffer.seek(0, os.SEEK_END)
                 buffer_length = buffer.tell()
@@ -222,9 +223,7 @@ class ThumbnailAsset(Asset):
                     image_data.save(thumbnail_path, format)
                 except Exception as ex:  # HACK: PIL raises all sorts of Exceptions :(
                     try:
-                        if isinstance(ex, IOError):
-                            raise
-                        raise IOError(str(ex))
+                        raise ThumbnailError(str(ex))
                     finally:
                         # Remove an incomplete file, if present.
                         try:
