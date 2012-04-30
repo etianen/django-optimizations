@@ -29,13 +29,13 @@ from optimizations.utils import resolve_namespaced_cache
 
 def freeze_dict(params):
     """Returns an invariant version of the dictionary, suitable for hashing."""
-    return u"&".join(
+    return hashlib.sha1(u"&".join(
         u"{key}={value}".format(
             key = key,
             value = value,
         )
         for key, value in sorted((params).iteritems())
-    )
+    )).hexdigest()
 
 
 class Asset(object):
@@ -126,7 +126,7 @@ class Asset(object):
         
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
-        return hashlib.sha1(freeze_dict(self.get_hash_params())).hexdigest()
+        return freeze_dict(self.get_hash_params())
     
     def get_save_meta(self):
         """Returns the meta parameters to associate with the asset in the asset cache."""
