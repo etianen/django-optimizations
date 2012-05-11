@@ -14,21 +14,25 @@ class JavascriptAsset(GroupedAsset):
     
     join_str = ";"
     
-    def __init__(self, assets, compile):
+    def __init__(self, assets, compile, rescope):
         """Initializes the asset."""
         super(JavascriptAsset, self).__init__(assets)
         self._compile = compile
+        self._rescope = rescope
     
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(JavascriptAsset, self).get_id_params()
         params["compile"] = self._compile
+        params["rescope"] = self._rescope
         return params
             
     def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
         if self._compile:
             contents = self.get_contents()
+            if self._rescope:
+                contents = "(function(window){%s}(window)());" % contents
             compiled_contents = default_javascript_compiler.compile(contents, force_compile=True)
             # Write the output.
             storage.save(name, ContentFile(compiled_contents))
@@ -45,13 +49,13 @@ class JavascriptCache(object):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
     
-    def get_urls(self, assets, compile=True, force_save=None):
+    def get_urls(self, assets, compile=True, rescope=False, force_save=None):
         """Returns a sequence of script URLs for the given assets."""
         if force_save is None:
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(JavascriptAsset(map(AdaptiveAsset, assets), compile), force_save=True)]
+                return [self._asset_cache.get_url(JavascriptAsset(map(AdaptiveAsset, assets), compile, rescope), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         
