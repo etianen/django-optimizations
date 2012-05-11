@@ -32,7 +32,7 @@ class JavascriptAsset(GroupedAsset):
         if self._compile:
             contents = self.get_contents()
             if self._rescope:
-                contents = "(function(window){%s}(window)());" % contents
+                contents = "(function(window){%s}(window));" % contents
             compiled_contents = default_javascript_compiler.compile(contents, force_compile=True)
             # Write the output.
             storage.save(name, ContentFile(compiled_contents))
