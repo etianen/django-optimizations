@@ -74,7 +74,7 @@ def video_img(src, width, height, method=VIDEO_PROPORTIONAL, alt="", **attrs):
         url = default_video_cache.get_url(src, width, height, method, format=JPEG_FORMAT)
     except VideoError:
         asset = AdaptiveAsset(src)
-        url = asset.get_url(),
+        url = asset.get_url()
     params["url"] = url
     return params
 
