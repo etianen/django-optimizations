@@ -122,6 +122,7 @@ def script_async(src="default", *_src):
 @inclusion_tag(register, "assets/stylesheet.html")
 def stylesheet(href="default", *_href, **attrs):
     """Renders one or more stylesheet tags."""
+    compile = attrs.pop("compile", True)
     all_href = (href,) + _href
     href_urls = filter(is_url, all_href)
     if href_urls:
@@ -131,7 +132,7 @@ def stylesheet(href="default", *_href, **attrs):
             raise ValueError("Mixed assets and absolute URLs are not allowed in stylesheet tags.")
     else:
         assets = StaticAsset.load("css", all_href)
-        urls = default_stylesheet_cache.get_urls(assets)
+        urls = default_stylesheet_cache.get_urls(assets, compile=compile)
     return {
         "urls": urls,
         "attrs": attrs,
