@@ -48,34 +48,34 @@ class StylesheetAsset(GroupedAsset):
             
     def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
+        file_parts = []
+        # Compile the assets.
+        for asset in self._assets:
+            # Load the asset source.
+            with closing(asset.open()) as handle:
+                source = handle.read().decode("utf-8")
+            # Get the asset URL.
+            host_url = asset.get_url()
+            for re_url in RE_URLS:
+                def do_url_replacement(match):
+                    url = match.group(1).strip()
+                    # Resolve relative URLs.
+                    url = urlparse.urljoin(host_url, url)
+                    # Strip off query and fragment.
+                    url_parts = urlparse.urlparse(url)
+                    # Compile static urls.
+                    if url.startswith(settings.STATIC_URL):
+                        simple_url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
+                        static_url = default_asset_cache.get_url(simple_url[len(settings.STATIC_URL):], force_save=True)
+                        url = urlparse.urlunparse(urlparse.urlparse(static_url)[:3] + url_parts[3:])
+                    return u"url({url})".format(
+                        url = url,
+                    )
+                source = re_url.sub(do_url_replacement, source)
+            file_parts.append(source.encode("utf-8"))
+        # Consolidate the content.
+        contents = self.join_str.join(file_parts)
         if self._compile:
-            file_parts = []
-            # Compile the assets.
-            for asset in self._assets:
-                # Load the asset source.
-                with closing(asset.open()) as handle:
-                    source = handle.read().decode("utf-8")
-                # Get the asset URL.
-                host_url = asset.get_url()
-                for re_url in RE_URLS:
-                    def do_url_replacement(match):
-                        url = match.group(1).strip()
-                        # Resolve relative URLs.
-                        url = urlparse.urljoin(host_url, url)
-                        # Strip off query and fragment.
-                        url_parts = urlparse.urlparse(url)
-                        # Compile static urls.
-                        if url.startswith(settings.STATIC_URL):
-                            simple_url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
-                            static_url = default_asset_cache.get_url(simple_url[len(settings.STATIC_URL):], force_save=True)
-                            url = urlparse.urlunparse(urlparse.urlparse(static_url)[:3] + url_parts[3:])
-                        return u"url({url})".format(
-                            url = url,
-                        )
-                    source = re_url.sub(do_url_replacement, source)
-                file_parts.append(source.encode("utf-8"))
-            # Consolidate the content.
-            contents = self.join_str.join(file_parts)
             # Compress the content.
             compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
             process = subprocess.Popen(
@@ -88,11 +88,8 @@ class StylesheetAsset(GroupedAsset):
             # Check it all worked.
             if process.returncode != 0:
                 raise StylesheetError("Error while compiling stylesheets.", stderrdata)
-            # Write the output.
-            storage.save(name, ContentFile(stdoutdata))
-        else:
-            # Just save the joined code.
-            super(StylesheetAsset, self).save(storage, name, meta)
+        # Write the output.
+        storage.save(name, ContentFile(stdoutdata))
             
             
 class StylesheetCache(object):
