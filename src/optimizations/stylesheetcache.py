@@ -84,12 +84,12 @@ class StylesheetAsset(GroupedAsset):
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE,
             )
-            stdoutdata, stderrdata = process.communicate(contents)
+            contents, stderrdata = process.communicate(contents)
             # Check it all worked.
             if process.returncode != 0:
                 raise StylesheetError("Error while compiling stylesheets.", stderrdata)
         # Write the output.
-        storage.save(name, ContentFile(stdoutdata))
+        storage.save(name, ContentFile(contents))
             
             
 class StylesheetCache(object):
