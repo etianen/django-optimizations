@@ -150,12 +150,9 @@ class StaticAsset(Asset):
     @staticmethod
     def get_static_path(name):
         """Returns the full static path of the given name."""
-        if settings.DEBUG:
-            path = find_static_path(name)
-            if path is None:
-                path = staticfiles_storage.path(name)
-        else:
-            path = staticfiles_storage.path(name) 
+        path = find_static_path(name)
+        if path is None:
+            path = staticfiles_storage.path(name)
         return os.path.abspath(path)
         
     @staticmethod
