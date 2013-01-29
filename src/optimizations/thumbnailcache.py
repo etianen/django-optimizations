@@ -139,10 +139,18 @@ class ThumbnailAsset(Asset):
         self._height = height
         self._method = method
     
+    def open(self):
+        """Returns an open File for this asset."""
+        return self._asset.open()
+    
     def get_name(self):
         """Returns the name of this asset."""
         return self._asset.get_name()
-        
+    
+    def get_url(self):
+        """Returns the frontend URL of this asset."""
+        return self._asset.get_url()
+    
     def get_path(self):
         """Returns the filesystem path of this asset."""
         return self._asset.get_path()
