@@ -2,6 +2,12 @@ django-optimizations changelog
 ==============================
 
 
+1.0.2 - 29/01/2013
+------------------
+
+* Allowing thumbnailing on remote filesystems (e.g. Amazon S3).
+
+
 1.0.1 - 29/01/2013
 ------------------
 
