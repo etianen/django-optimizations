@@ -3,12 +3,11 @@ from distutils.core import setup
 
 setup(
     name = "django-optimizations",
-    version = "1.0.0",
+    version = "1.0.1",
     description = "A utility library for Django aimed at improving website performance.",
     author = "Dave Hall",
     author_email = "dave@etianen.com",
     url = "https://github.com/etianen/django-optimizations",
-    download_url = "http://github.com/downloads/etianen/django-optimizations/django-optimizations-1.0.0.tar.gz",
     zip_safe = False,
     packages = [
         "optimizations",
