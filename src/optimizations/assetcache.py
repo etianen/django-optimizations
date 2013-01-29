@@ -233,6 +233,9 @@ class StaticAsset(Asset):
         """Initializes the static asset."""
         self._name = name
         
+    def open(self):
+        return staticfiles_storage.open(self._name)
+        
     def get_name(self):
         """Returns the name of this static asset."""
         return self._name
