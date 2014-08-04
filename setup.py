@@ -3,7 +3,7 @@ from distutils.core import setup
 
 setup(
     name = "django-optimizations",
-    version = "1.0.2",
+    version = "1.0.3",
     description = "A utility library for Django aimed at improving website performance.",
     author = "Dave Hall",
     author_email = "dave@etianen.com",

@@ -2,6 +2,13 @@ django-optimizations changelog
 ==============================
 
 
+1.0.3 - 04/08/2014
+------------------
+
+* Upgrading yuicompressor to 2.4.8.
+* Joining grouped stylesheets with a newline to improve compressor compatibility.
+
+
 1.0.2 - 29/01/2013
 ------------------
 
