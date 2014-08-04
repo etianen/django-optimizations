@@ -34,6 +34,8 @@ RE_URLS = (
 class StylesheetAsset(GroupedAsset):
 
     """An asset that represents one or more stylesheet files."""
+
+    join_str = "\n"
     
     def __init__(self, assets, compile):
         """Initializes the asset."""
