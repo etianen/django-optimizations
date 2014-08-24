@@ -35,7 +35,7 @@ def freeze_dict(params):
             value = value,
         )
         for key, value in sorted((params).iteritems())
-    )).hexdigest()
+    ).encode('utf-8')).hexdigest()
 
 
 class Asset(object):
