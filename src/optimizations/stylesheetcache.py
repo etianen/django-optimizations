@@ -4,12 +4,7 @@ from contextlib import closing
 import os.path
 import re
 import subprocess
-
-try:
-    from urllib.parse import urlparse
-except:
-    # Python 2.7
-    import urlparse
+from six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile

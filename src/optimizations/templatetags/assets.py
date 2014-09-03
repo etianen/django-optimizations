@@ -1,12 +1,9 @@
 """Template tags used for optimizing assets."""
 
-try:
-    from urllib.parse import urlparse
-except:
-    from urlparse import urlparse
-
 from django import template
 from django.utils.html import escape
+from django.utils import six
+from six.moves.urllib.parse import urlparse
 
 from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL, ThumbnailError
@@ -84,7 +81,7 @@ def video_img(src, width, height, method=VIDEO_PROPORTIONAL, alt="", **attrs):
 
 def is_url(s):
     """Checks if the given string is a URL."""
-    if not isinstance(s, str):
+    if not isinstance(s, six.string_types):
         return False
     src_parts = urlparse(s)
     return src_parts.scheme or src_parts.netloc

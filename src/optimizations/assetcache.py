@@ -18,6 +18,7 @@ from django.core.files.base import File, ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.core.files.storage import get_storage_class
+from django.utils import six
 
 try:
     staticfiles_storage = storage.staticfiles_storage
@@ -160,7 +161,7 @@ class StaticAsset(Asset):
         """Resolves the given asset name into a list of static assets."""
         namespaces = StaticAsset._load_namespaces()
         # Adapt a single asset to a list.
-        if isinstance(assets, (str, Asset)):
+        if isinstance(assets, (six.string_types, Asset)):
             assets = [assets]
         # Adapt asset names to assets.
         asset_objs = []
@@ -222,9 +223,9 @@ class StaticAsset(Asset):
                 # Create the assets.
                 return [StaticAsset(asset_name) for asset_name in asset_names]
             # Load in all namespaces.
-            for namespace, types in getattr(settings, "STATIC_ASSETS", {}).items():
+            for namespace, types in six.iteritems(getattr(settings, "STATIC_ASSETS", {})):
                 type_cache = namespaces[namespace] = {}
-                for type, config in types.items():
+                for type, config in six.iteritems(types):
                     type_cache[type] = do_load(type, **config)
             # Save in the cache.
             StaticAsset._namespace_cache = namespaces
@@ -352,7 +353,7 @@ class AdaptiveAsset(Asset):
             return asset
         if isinstance(asset, File):
             return FileAsset(asset)
-        if isinstance(asset, basestring):
+        if isinstance(asset, six.string_types):
             return StaticAsset(asset)
         raise TypeError("{!r} is not a valid asset".format(asset))
 
