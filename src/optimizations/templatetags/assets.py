@@ -3,7 +3,7 @@
 from django import template
 from django.utils.html import escape
 from django.utils import six
-from six.moves.urllib.parse import urlparse
+from django.utils.six.moves.urllib.parse import urlparse
 
 from optimizations.assetcache import StaticAsset, default_asset_cache, AdaptiveAsset
 from optimizations.thumbnailcache import default_thumbnail_cache, PROPORTIONAL, ThumbnailError
