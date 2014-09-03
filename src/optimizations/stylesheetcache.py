@@ -6,7 +6,7 @@ import re
 import subprocess
 
 try:
-    from urllib import parse as urlparse
+    from urllib.parse import urlparse
 except:
     # Python 2.7
     import urlparse
