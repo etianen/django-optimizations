@@ -8,9 +8,9 @@ import optimizations
 
 
 class JavascriptError(Exception):
-    
+
     """Something went wrong with javascript compilation."""
-    
+
     def __init__(self, message, detail_message):
         """Initializes the javascript error."""
         super(JavascriptError, self).__init__(message)
@@ -18,19 +18,19 @@ class JavascriptError(Exception):
 
 
 class JavascriptCompiler(object):
-    
+
     """A compiler of javascript code."""
-    
+
     def __init__(self, cache_name="optimizations.javascriptcompiler"):
         """Initializes the JavascriptCompiler."""
         self._compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")
-        
+
     def compile(self, source, force_compile=None):
         """Compiles the given javascript source code."""
         if force_compile is None:
             force_compile = not settings.DEBUG
         # Convert to string.
-        if isinstance(source, unicode):
+        if isinstance(source, six.string_types):
             source = source.encode("utf-8")
         # Don't compile in debug mode.
         if not force_compile:
@@ -43,10 +43,11 @@ class JavascriptCompiler(object):
             stderr = subprocess.PIPE,
         )
         stdoutdata, stderrdata = process.communicate(source)
+
         # Check it all worked.
         if process.returncode != 0:
             raise JavascriptError("Error while compiling javascript.", stderrdata)
         return stdoutdata
-    
-    
+
+
 default_javascript_compiler = JavascriptCompiler()

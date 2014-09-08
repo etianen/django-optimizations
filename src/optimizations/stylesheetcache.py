@@ -1,7 +1,10 @@
 """A cache of javascipt files, optionally compressed."""
 
-import re, urlparse, os.path, subprocess
 from contextlib import closing
+import os.path
+import re
+import subprocess
+from django.utils.six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -12,9 +15,9 @@ from optimizations.assetcompiler import AssetCompilerPluginBase, default_asset_c
 
 
 class StylesheetError(Exception):
-    
+
     """Something went wrong with stylesheet compilation."""
-    
+
     def __init__(self, message, detail_message):
         """Initializes the stylesheet error."""
         super(StylesheetError, self).__init__(message)
@@ -36,18 +39,18 @@ class StylesheetAsset(GroupedAsset):
     """An asset that represents one or more stylesheet files."""
 
     join_str = "\n"
-    
+
     def __init__(self, assets, compile):
         """Initializes the asset."""
         super(StylesheetAsset, self).__init__(assets)
         self._compile = compile
-    
+
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(StylesheetAsset, self).get_id_params()
         params["compile"] = self._compile
         return params
-            
+
     def save(self, storage, name, meta):
         """Saves this asset to the given storage."""
         file_parts = []
@@ -92,27 +95,27 @@ class StylesheetAsset(GroupedAsset):
                 raise StylesheetError("Error while compiling stylesheets.", stderrdata)
         # Write the output.
         storage.save(name, ContentFile(contents))
-            
-            
+
+
 class StylesheetCache(object):
-    
+
     """A cache of stylesheet files."""
-    
+
     def __init__(self, asset_cache=default_asset_cache):
         """Initializes the thumbnail cache."""
         self._asset_cache = asset_cache
-    
+
     def get_urls(self, assets, compile=True, force_save=None):
         """Returns a sequence of style URLs for the given assets."""
         if force_save is None:
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(StylesheetAsset(map(AdaptiveAsset, assets), compile), force_save=True)]    
+                return [self._asset_cache.get_url(StylesheetAsset(map(AdaptiveAsset, assets), compile), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
-        
-        
+
+
 # The default stylesheet cache.
 default_stylesheet_cache = StylesheetCache()
 
@@ -120,18 +123,18 @@ default_stylesheet_cache = StylesheetCache()
 # Asset compiler plugin.
 
 class StylesheetAssetCompilerPlugin(AssetCompilerPluginBase):
-    
+
     """An asset compiler plugin for stylesheet files."""
-    
+
     asset_type = "stylesheet"
-    
+
     def __init__(self, stylesheet_cache=default_stylesheet_cache):
         """Initialzies the stylesheet asset compiler plugin."""
         self._stylesheet_cache = stylesheet_cache
-        
+
     def compile_assets(self, assets):
         """Compiles the given stylesheet assets."""
         self._stylesheet_cache.get_urls(assets, force_save=True)
-        
+
 
 default_asset_compiler.register_plugin("css", StylesheetAssetCompilerPlugin())

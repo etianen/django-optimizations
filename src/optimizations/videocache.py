@@ -1,18 +1,17 @@
 """Video processing and resizing tools using ffmpeg."""
 
-import subprocess, re, os, collections
-from contextlib import closing
-from cStringIO import StringIO
-
-from django.core.files import File
+import collections
+import os
+import re
+import subprocess
 
 from optimizations.assetcache import Asset, default_asset_cache, AdaptiveAsset
 
 
 class VideoError(Exception):
-    
+
     """Something went wrong with video processing."""
-    
+
     def __init__(self, message, detail_message):
         """Initializes the video error."""
         super(VideoError, self).__init__(message)
@@ -27,23 +26,23 @@ RE_DURATION = re.compile("Duration:\s*(\d+):(\d+):(\d+)", re.IGNORECASE)
 def _size(width, height):
     """Performs a non-proportional resize."""
     return ("-vf", r"scale={width}:{height}".format(width=width, height=height))
-    
+
 
 def _size_proportional(width, height):
     """Performs a proportional resize."""
     return ("-vf", r"scale=min({height}*(iw/ih)\,{width}):min({width}/(iw/ih)\,{height})".format(width=width, height=height))
-    
-    
+
+
 def _size_crop(width, height):
     """Performs a cropping resize."""
     return ("-vf", r"scale=max({height}*(iw/ih)\,{width}):max({width}/(iw/ih)\,{height}),crop={width}:{height}".format(width=width, height=height),)
-    
+
 
 def _size_pad(width, height):
     """Performs a padded resize."""
     return ("-vf", r"scale=min({height}*(iw/ih)\,{width}):min({width}/(iw/ih)\,{height}),pad={width}:{height}:({width}-iw)/2:({height}-ih)/2".format(width=width, height=height),)
-    
-    
+
+
 PROPORTIONAL = "proportional"
 RESIZE = "resize"
 CROP = "crop"
@@ -86,8 +85,8 @@ def _format_jpeg(input_path, offset):
 def _format_mp4(input_path, offset):
     """Formats the video to an MP4."""
     return offset, ("-f", "mp4",)
-    
-    
+
+
 JPEG_FORMAT = "jpeg"
 MP4_FORMAT = "mp4"
 
@@ -98,14 +97,14 @@ _formats = {
     MP4_FORMAT: FormatMethod(_format_mp4, "mp4", "mp4"),
 }
 
-    
 
-# The video asset.    
-    
+
+# The video asset.
+
 class VideoAsset(Asset):
-    
+
     """A video asset."""
-    
+
     def __init__(self, asset, width, height, method, format, offset):
         """Initializes the video asset."""
         self._asset = asset
@@ -114,15 +113,15 @@ class VideoAsset(Asset):
         self._method = method
         self._format = format
         self._offset = offset
-        
+
     def get_name(self):
         """Returns the name of this asset."""
         return self._asset.get_name()
-        
+
     def get_path(self):
         """Returns the filesystem path of this asset."""
         return self._asset.get_path()
-    
+
     def get_id_params(self):
         """"Returns the params which should be used to generate the id."""
         params = super(VideoAsset, self).get_id_params()
@@ -132,11 +131,11 @@ class VideoAsset(Asset):
         params["format"] = self._format.hash_key
         params["offset"] = self._offset is None and -1 or self._offset
         return params
-    
+
     def get_save_extension(self):
         """Returns the file extension to use when saving the asset."""
         return "." + self._format.extension
-    
+
     def save(self, storage, name, meta):
         """Saves the video."""
         # Get the input handle.
@@ -177,16 +176,16 @@ class VideoAsset(Asset):
                     os.unlink(output_path)
                 except:
                     pass
-        
-            
+
+
 class VideoCache(object):
 
     """A cache of videos."""
-    
+
     def __init__(self, asset_cache=default_asset_cache):
         """Initializes the video cache."""
         self._asset_cache = asset_cache
-        
+
     def _get_video_asset(self, asset, width=None, height=None, method=PAD, format=MP4_FORMAT, offset=None):
         """
         Returns a processed video from the given video.
@@ -211,15 +210,15 @@ class VideoCache(object):
         asset = AdaptiveAsset(asset)
         # Create the video.
         return VideoAsset(asset, width, height, method, format, offset)
-    
+
     def get_path(self, *args, **kwargs):
         """Returns the path of the given video asset."""
         return self._asset_cache.get_path(self._get_video_asset(*args, **kwargs), force_save=True)
-    
+
     def get_url(self, *args, **kwargs):
         """Returns the URL of the given video asset."""
         return self._asset_cache.get_url(self._get_video_asset(*args, **kwargs), force_save=True)
-        
-        
+
+
 # The default video cache.
 default_video_cache = VideoCache()
