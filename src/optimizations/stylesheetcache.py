@@ -9,6 +9,7 @@ from django.utils.six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils.encoding import force_bytes
 
 import optimizations
 from optimizations.assetcache import default_asset_cache, GroupedAsset, AdaptiveAsset
@@ -80,7 +81,7 @@ class StylesheetAsset(GroupedAsset):
                 source = re_url.sub(do_url_replacement, source)
             file_parts.append(source.encode("utf-8"))
         # Consolidate the content.
-        contents = self.join_str.join(file_parts)
+        contents = force_bytes(self.join_str).join(file_parts)
         if self._compile:
             # Compress the content.
             compressor_path = os.path.join(os.path.abspath(os.path.dirname(optimizations.__file__)), "resources", "yuicompressor.jar")

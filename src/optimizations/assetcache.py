@@ -20,6 +20,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.utils import six
+from django.utils.encoding import force_bytes
 
 try:
     staticfiles_storage = storage.staticfiles_storage
@@ -331,7 +332,7 @@ class GroupedAsset(Asset):
 
     def get_contents(self):
         """Loads all the js code."""
-        return self.join_str.join(asset.get_contents() for asset in self._assets)
+        return force_bytes(self.join_str).join(asset.get_contents() for asset in self._assets)
 
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
