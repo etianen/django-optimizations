@@ -1,4 +1,5 @@
 """Random utility functions."""
+from __future__ import unicode_literals
 
 from django.core.cache import get_cache, InvalidCacheBackendError, cache as default_cache
 

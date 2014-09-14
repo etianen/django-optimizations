@@ -1,4 +1,5 @@
 """Compatibility shims for the Django 1.4 template tag helpers."""
+from __future__ import unicode_literals
 
 import re
 from functools import wraps
@@ -6,7 +7,7 @@ from functools import wraps
 from django import template
 
 
-RE_KWARG = re.compile(u"([a-z][a-z0-9_]*)=(.*)", re.IGNORECASE)
+RE_KWARG = re.compile("([a-z][a-z0-9_]*)=(.*)", re.IGNORECASE)
 
 
 def parse_token(parser, token):

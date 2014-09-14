@@ -1,4 +1,5 @@
 """A general-purpose javascript compiler."""
+from __future__ import unicode_literals
 
 import os.path, subprocess
 

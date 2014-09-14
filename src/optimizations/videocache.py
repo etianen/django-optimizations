@@ -1,4 +1,5 @@
 """Video processing and resizing tools using ffmpeg."""
+from __future__ import unicode_literals
 
 import collections
 import os

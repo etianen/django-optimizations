@@ -1,4 +1,5 @@
 """A cache of javascipt files, optionally compressed."""
+from __future__ import unicode_literals
 
 from contextlib import closing
 import os.path
@@ -25,12 +26,12 @@ class StylesheetError(Exception):
 
 
 RE_URLS = (
-    re.compile(u"url\('([^']+)'\)", re.IGNORECASE),
-    re.compile(u"url\(\"([^\"]+)\"\)", re.IGNORECASE),
-    re.compile(u"url\(([^\)]+)\)", re.IGNORECASE),
-    re.compile(u"@import\s*\('([^']+)'\)", re.IGNORECASE),
-    re.compile(u"@import\s*\(\"([^\"]+)\"\)", re.IGNORECASE),
-    re.compile(u"@import\s*\(([^\)]+)\)", re.IGNORECASE),
+    re.compile("url\('([^']+)'\)", re.IGNORECASE),
+    re.compile("url\(\"([^\"]+)\"\)", re.IGNORECASE),
+    re.compile("url\(([^\)]+)\)", re.IGNORECASE),
+    re.compile("@import\s*\('([^']+)'\)", re.IGNORECASE),
+    re.compile("@import\s*\(\"([^\"]+)\"\)", re.IGNORECASE),
+    re.compile("@import\s*\(([^\)]+)\)", re.IGNORECASE),
 )
 
 
@@ -73,7 +74,7 @@ class StylesheetAsset(GroupedAsset):
                         simple_url = urlparse.urlunparse(url_parts[:3] + ("", "", "",))
                         static_url = default_asset_cache.get_url(simple_url[len(settings.STATIC_URL):], force_save=True)
                         url = urlparse.urlunparse(urlparse.urlparse(static_url)[:3] + url_parts[3:])
-                    return u"url({url})".format(
+                    return "url({url})".format(
                         url = url,
                     )
                 source = re_url.sub(do_url_replacement, source)

@@ -44,7 +44,7 @@ class OptimizationsTemplateTagsTest(TestCase):
                 "width": width,
                 "height": height,
             })),
-            u'<img src="{src}" width={width} height={height} alt="">'.format(
+            '<img src="{src}" width={width} height={height} alt="">'.format(
                 src = thumbnail.url,
                 width = thumbnail.width,
                 height = thumbnail.height,
@@ -63,7 +63,7 @@ class OptimizationsTemplateTagsTest(TestCase):
                 "width": width,
                 "height": height,
             })),
-            u'{src}:{width}:{height}'.format(
+            '{src}:{width}:{height}'.format(
                 src = thumbnail.url,
                 width = thumbnail.width,
                 height = thumbnail.height,
@@ -77,7 +77,7 @@ class OptimizationsTemplateTagsTest(TestCase):
             Template("{% load assets %}{% stylesheet stylesheet %}").render(Context({
                 "stylesheet": stylesheet,
             })),
-            u'<link rel="stylesheet" href="{url}">'.format(
+            '<link rel="stylesheet" href="{url}">'.format(
                 url = urls[0],
             ),
         )
@@ -89,7 +89,7 @@ class OptimizationsTemplateTagsTest(TestCase):
             Template("{% load assets %}{% script script %}").render(Context({
                 "script": script,
             })),
-            u'<script src="{url}"></script>'.format(
+            '<script src="{url}"></script>'.format(
                 url = urls[0],
             ),
         )
@@ -97,5 +97,5 @@ class OptimizationsTemplateTagsTest(TestCase):
     def testScripTagAbsoluteUrl(self):
         self.assertEqual(
             Template("{% load assets %}{% script 'http://www.example.com/example.js' %}").render(Context({})),
-            u'<script src="http://www.example.com/example.js"></script>',
+            '<script src="http://www.example.com/example.js"></script>',
         )

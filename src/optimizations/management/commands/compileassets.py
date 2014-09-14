@@ -1,4 +1,5 @@
 """Compiles the stylesheet assets in this project."""
+from __future__ import unicode_literals
 
 from django.core.management.base import NoArgsCommand
 

@@ -1,4 +1,5 @@
 """A cache for thumbnailed images."""
+from __future__ import unicode_literals
 
 import collections
 import sys

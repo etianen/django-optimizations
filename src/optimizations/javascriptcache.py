@@ -1,4 +1,5 @@
 """A cache of javascipt files, optionally compressed."""
+from __future__ import unicode_literals
 
 from django.conf import settings
 from django.core.files.base import ContentFile

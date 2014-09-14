@@ -7,6 +7,7 @@ when accessed multiple times in the same request.
 
 The property can also be safely set and deleted without interference.
 """
+from __future__ import unicode_literals
 
 from functools import wraps
 

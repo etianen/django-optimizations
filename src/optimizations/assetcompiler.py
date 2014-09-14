@@ -1,6 +1,9 @@
 """A programmatic compiler of static assets."""
+from __future__ import unicode_literals
 
 import abc
+
+from django.utils import six
 
 from optimizations.assetcache import StaticAsset
 
@@ -10,11 +13,9 @@ class AssetCompilerPluginRegistrationError(Exception):
     """An error occured while registering asset compiler plugins."""
 
 
-class AssetCompilerPluginBase(object):
+class AssetCompilerPluginBase(six.with_metaclass(abc.ABCMeta)):
     
     """Base class for asset compiler plugins."""
-    
-    __metaclass__ = abc.ABCMeta
     
     asset_type = "various"
     

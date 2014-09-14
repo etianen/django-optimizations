@@ -7,6 +7,7 @@ automatically cleared.
 A classic use of an asset cache is to copy static files from a server with
 a short expiry header to a server with an extremely long expiry header.
 """
+from __future__ import unicode_literals
 
 import hashlib, os.path, fnmatch, re
 from abc import ABCMeta, abstractmethod
@@ -30,8 +31,8 @@ from optimizations.utils import resolve_namespaced_cache
 
 def freeze_dict(params):
     """Returns an invariant version of the dictionary, suitable for hashing."""
-    return hashlib.sha1(u"&".join(
-        u"{key}={value}".format(
+    return hashlib.sha1("&".join(
+        "{key}={value}".format(
             key = key,
             value = value,
         )
@@ -39,11 +40,9 @@ def freeze_dict(params):
     ).encode('utf-8')).hexdigest()
 
 
-class Asset(object):
+class Asset(six.with_metaclass(ABCMeta)):
 
     """An asset that is available to the asset cache."""
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_name(self):
@@ -102,7 +101,7 @@ class Asset(object):
         return freeze_dict(self._get_and_check_id_params())
 
     def get_cache_key(self):
-        return u"optimizations:assetcache:{id}".format(
+        return "optimizations:assetcache:{id}".format(
             id = self.get_id(),
         )
 
@@ -316,7 +315,7 @@ class GroupedAsset(Asset):
         # Add in the assets.
         for n, asset in enumerate(self._assets):
             params.update(
-                (u"{n}_{key}".format(
+                ("{n}_{key}".format(
                     n = n,
                     key = key,
                 ), value)
@@ -377,7 +376,7 @@ class AssetCache(object):
             # Generate the name.
             asset_hash = asset.get_hash()
             asset_ext = asset.get_save_extension()
-            name = u"{prefix}/{folder}/{hash}{ext}".format(
+            name = "{prefix}/{folder}/{hash}{ext}".format(
                 prefix = self._prefix,
                 folder = asset_hash[:2],
                 hash = asset_hash[2:],
