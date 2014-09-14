@@ -3,7 +3,6 @@
 import os.path
 from functools import partial
 
-from django.utils.unittest import skipUnless
 from django.contrib.staticfiles import finders
 
 from optimizations.assetcache import default_asset_cache, StaticAsset
