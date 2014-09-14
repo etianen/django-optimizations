@@ -105,8 +105,8 @@ def _resize_cropped(image, image_size, thumbnail_display_size, thumbnail_image_s
         pre_cropped_size = Size(thumbnail_image_size.width, thumbnail_image_size.width / image_aspect)
     # Crop.
     image = image.resize(pre_cropped_size, Image.ANTIALIAS)
-    source_x = (pre_cropped_size.width - thumbnail_image_size.width) / 2
-    source_y = (pre_cropped_size.height - thumbnail_image_size.height) / 2
+    source_x = int((pre_cropped_size.width - thumbnail_image_size.width) / 2)
+    source_y = int((pre_cropped_size.height - thumbnail_image_size.height) / 2)
     return image.crop((
         source_x,
         source_y,

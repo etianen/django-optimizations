@@ -335,7 +335,7 @@ class GroupedAsset(Asset):
 
     def get_hash(self):
         """Returns the sha1 hash of this asset's contents."""
-        return hashlib.sha1("".join(asset.get_hash() for asset in self._assets)).hexdigest()
+        return hashlib.sha1("".join(asset.get_hash() for asset in self._assets).encode("utf-8")).hexdigest()
 
     def open(self):
         """Returns an open file pointer."""
