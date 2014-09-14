@@ -29,6 +29,7 @@ class AssetCacheTest(TestCase):
         self.assertAssetWorks(asset, staticfiles_storage.open(asset.get_name()))
     
     def testFileAsset(self):
-        file = File(open(get_test_asset().get_path(), "rb"))
-        asset = FileAsset(file)
+        asset = get_test_asset()
+        file = open(asset.get_path(), "rb")
+        asset = FileAsset(File(open(asset.get_path(), "rb")))
         self.assertAssetWorks(asset, file)
