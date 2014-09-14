@@ -14,7 +14,7 @@ matrix:
       env: DJANGO=django==1.7
   fast_finish: true
 install:
-  - travis_retry pip install $DJANGO
+  - travis_retry pip install $DJANGO Pillow
   - pip install -e .
 script: python src/tests/runtests.py
 notifications:
