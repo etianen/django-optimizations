@@ -197,7 +197,7 @@ class VideoCache(object):
         except KeyError:
             raise ValueError("{method} is not a valid video method. Should be one of {methods}.".format(
                 method = method,
-                methods = ", ".join(_methods.iterkeys())
+                methods = ", ".join(_methods.keys())
             ))
         # Lookup the format.
         try:
@@ -205,7 +205,7 @@ class VideoCache(object):
         except KeyError:
             raise ValueError("{format} is not a valid video format. Should be one of {formats}.".format(
                 format = format,
-                formats = ", ".join(_formats.iterkeys())
+                formats = ", ".join(_formats.keys())
             ))
         # Adapt the asset.
         asset = AdaptiveAsset(asset)

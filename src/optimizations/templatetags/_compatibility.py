@@ -5,6 +5,8 @@ import re
 from functools import wraps
 
 from django import template
+from django.utils.encoding import force_text
+from django.utils import six
 
 
 RE_KWARG = re.compile("([a-z][a-z0-9_]*)=(.*)", re.IGNORECASE)
@@ -54,7 +56,7 @@ class CompatibilityNode(template.Node):
         kwargs = dict(
             (name, value.resolve(context))
             for name, value
-            in self._kwargs.iteritems()
+            in six.iteritems(self._kwargs)
         )
         # Add in the context.
         if self._takes_context:
@@ -66,7 +68,7 @@ class CompatibilityNode(template.Node):
             context[self._alias] = result
             return ""
         # Render the result.
-        return unicode(result)
+        return force_text(result)
     
 
 def simple_tag_compat(register, takes_context, func, name):

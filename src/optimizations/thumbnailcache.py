@@ -76,8 +76,8 @@ def _size_proportional(reference, size):
     if size.width is None and size.height is None:
         return _size(reference, size)
     return Size(
-        _replace_null(size.width, sys.maxint),
-        _replace_null(size.height, sys.maxint),
+        _replace_null(size.width, sys.maxsize),
+        _replace_null(size.height, sys.maxsize),
     ).constrain(reference)
 
 
@@ -313,7 +313,7 @@ class ThumbnailCache(object):
         except KeyError:
             raise ValueError("{method} is not a valid thumbnail method. Should be one of {methods}.".format(
                 method = method,
-                methods = ", ".join(_methods.iterkeys())
+                methods = ", ".join(_methods.keys())
             ))
         # Adapt the asset.
         asset = AdaptiveAsset(asset)

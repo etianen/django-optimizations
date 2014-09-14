@@ -36,7 +36,7 @@ def freeze_dict(params):
             key = key,
             value = value,
         )
-        for key, value in sorted((params).iteritems())
+        for key, value in sorted(six.iteritems(params))
     ).encode('utf-8')).hexdigest()
 
 
@@ -182,7 +182,7 @@ class StaticAsset(Asset):
     @staticmethod
     def get_namespaces():
         """Returns a list of all namespaces in the static asset loader."""
-        return StaticAsset._load_namespaces().keys()
+        return list(StaticAsset._load_namespaces().keys())
 
     @staticmethod
     def get_urls(type, assets="default"):
@@ -320,7 +320,7 @@ class GroupedAsset(Asset):
                     key = key,
                 ), value)
                 for key, value
-                in asset._get_and_check_id_params().iteritems()
+                in six.iteritems(asset._get_and_check_id_params())
             )
         # All done.
         return params

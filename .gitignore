@@ -13,3 +13,4 @@ build
 MANIFEST
 /src/tests/static
 /src/tests/media
+/.coverage

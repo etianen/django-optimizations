@@ -56,7 +56,7 @@ class JavascriptCache(object):
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(JavascriptAsset(map(AdaptiveAsset, assets), compile, rescope), force_save=True)]
+                return [self._asset_cache.get_url(JavascriptAsset(list(map(AdaptiveAsset, assets)), compile, rescope), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
         

@@ -58,7 +58,7 @@ class AssetCompiler(object):
     
     def compile_iter(self, namespace="default"):
         """Iterates over all assets in the given namespace, compiling as it goes."""
-        for plugin_name, plugin in self._plugins.iteritems():
+        for plugin_name, plugin in six.iteritems(self._plugins):
             assets = StaticAsset.load(plugin_name, namespace)
             plugin.compile_assets(assets)
             yield plugin, assets

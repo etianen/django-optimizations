@@ -112,7 +112,7 @@ class StylesheetCache(object):
             force_save = not settings.DEBUG
         if force_save:
             if assets:
-                return [self._asset_cache.get_url(StylesheetAsset(map(AdaptiveAsset, assets), compile), force_save=True)]
+                return [self._asset_cache.get_url(StylesheetAsset(list(map(AdaptiveAsset, assets)), compile), force_save=True)]
             return []
         return [self._asset_cache.get_url(asset) for asset in assets]
 

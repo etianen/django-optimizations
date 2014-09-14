@@ -20,7 +20,6 @@ def iter_test_assets(valid_extensions):
                 try:
                     default_asset_cache.get_name(asset)
                 except:
-                    raise
                     continue
                 else:
                     yield asset
