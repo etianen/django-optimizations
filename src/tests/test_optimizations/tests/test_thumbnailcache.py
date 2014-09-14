@@ -7,12 +7,11 @@ from django.core.files.storage import default_storage
 
 from optimizations.assetcache import default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
-from optimizations.tests.base import skipUnlessTestThumbnailAsset, get_test_thumbnail_asset
+from test_optimizations.tests.base import get_test_thumbnail_asset
 
 
 class ThumbnailCacheTest(TestCase):
     
-    @skipUnlessTestThumbnailAsset
     def testImageCacheForSameSizeImageLeavesImageUnmodified(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -22,7 +21,6 @@ class ThumbnailCacheTest(TestCase):
         # Make sure the assets are identical.
         self.assertEqual(hashlib.sha1(default_storage.open(default_asset_cache.get_name(asset)).read()).hexdigest(), hashlib.sha1(default_storage.open(default_asset_cache.get_name(thumbnail._asset)).read()).hexdigest())
         
-    @skipUnlessTestThumbnailAsset
     def testImageCacheResizeSmaller(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -34,7 +32,6 @@ class ThumbnailCacheTest(TestCase):
         # Make sure the file contents are not identical.
         self.assertNotEqual(hashlib.sha1(default_storage.open(default_asset_cache.get_name(asset)).read()).hexdigest(), hashlib.sha1(default_storage.open(default_asset_cache.get_name(thumbnail._asset)).read()).hexdigest())
         
-    @skipUnlessTestThumbnailAsset
     def testImageCacheResizeLarger(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -46,7 +43,6 @@ class ThumbnailCacheTest(TestCase):
         # Make sure the file contents are identical.
         self.assertEqual(hashlib.sha1(default_storage.open(default_asset_cache.get_name(asset)).read()).hexdigest(), hashlib.sha1(default_storage.open(default_asset_cache.get_name(thumbnail._asset)).read()).hexdigest())
         
-    @skipUnlessTestThumbnailAsset
     def testImageCacheCrop(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -58,7 +54,6 @@ class ThumbnailCacheTest(TestCase):
         # Make sure the file contents are not identical.
         self.assertNotEqual(hashlib.sha1(default_storage.open(default_asset_cache.get_name(asset)).read()).hexdigest(), hashlib.sha1(default_storage.open(default_asset_cache.get_name(thumbnail._asset)).read()).hexdigest())
         
-    @skipUnlessTestThumbnailAsset
     def testImageCacheThumbnailSmaller(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -70,7 +65,6 @@ class ThumbnailCacheTest(TestCase):
         # Make sure the file contents are not identical.
         self.assertNotEqual(hashlib.sha1(default_storage.open(default_asset_cache.get_name(asset)).read()).hexdigest(), hashlib.sha1(default_storage.open(default_asset_cache.get_name(thumbnail._asset)).read()).hexdigest())
         
-    @skipUnlessTestThumbnailAsset
     def testImageCacheThumbnailLarger(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size

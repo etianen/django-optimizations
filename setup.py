@@ -11,7 +11,6 @@ setup(
     zip_safe = False,
     packages = [
         "optimizations",
-        "optimizations.tests",
         "optimizations.templatetags",
         "optimizations.management",
         "optimizations.management.commands",
@@ -33,6 +32,11 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
         "Framework :: Django",
     ],
 )

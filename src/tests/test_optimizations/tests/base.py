@@ -21,6 +21,7 @@ def iter_test_assets(valid_extensions):
                 try:
                     default_asset_cache.get_name(asset)
                 except:
+                    raise
                     continue
                 else:
                     yield asset
@@ -32,15 +33,10 @@ def get_test_asset(*valid_extensions):
     return None
 
 
-skipUnlessTestAsset = skipUnless(get_test_asset(), "No static assets could be found in the static files storage.")
-
-
 get_test_javascript_asset = partial(get_test_asset, ".js")
-skipUnlessTestJavascriptAsset = skipUnless(get_test_javascript_asset(), "No static javascript assets could be found in the static files storage.")
 
 
 get_test_stylesheet_asset = partial(get_test_asset, ".css")
-skipUnlessTestStylesheetAsset = skipUnless(get_test_stylesheet_asset(), "No static stylesheet assets could be found in the static files storage.")
 
 
 def get_test_thumbnail_asset():
@@ -52,6 +48,3 @@ def get_test_thumbnail_asset():
         else:
             return asset, image_size
     return None
-    
-    
-skipUnlessTestThumbnailAsset = skipUnless(get_test_thumbnail_asset(), "No static image assets could be found in the static files storage.")

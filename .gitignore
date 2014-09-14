@@ -6,7 +6,10 @@
 *.pyo
 .bzr
 .bzrignore
+*.egg-info
 Thumbs.db
 dist
 build
 MANIFEST
+/src/tests/static
+/src/tests/media

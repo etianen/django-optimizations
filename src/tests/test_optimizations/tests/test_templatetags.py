@@ -6,13 +6,12 @@ from django.template import Template, Context
 from optimizations.assetcache import default_asset_cache
 from optimizations.thumbnailcache import default_thumbnail_cache
 from optimizations.javascriptcache import default_javascript_cache
-from optimizations.tests.base import skipUnlessTestAsset, get_test_asset, skipUnlessTestThumbnailAsset, get_test_thumbnail_asset, skipUnlessTestStylesheetAsset, get_test_stylesheet_asset, skipUnlessTestJavascriptAsset, get_test_javascript_asset
+from test_optimizations.tests.base import get_test_asset, get_test_thumbnail_asset, get_test_stylesheet_asset, get_test_javascript_asset
 from optimizations.stylesheetcache import default_stylesheet_cache
 
 
 class OptimizationsTemplateTagsTest(TestCase):
     
-    @skipUnlessTestAsset
     def testAssetTag(self):
         asset = get_test_asset()
         url = default_asset_cache.get_url(asset)
@@ -23,7 +22,6 @@ class OptimizationsTemplateTagsTest(TestCase):
             url,
         )
         
-    @skipUnlessTestAsset
     def testGetAssetTag(self):
         asset = get_test_asset()
         url = default_asset_cache.get_url(asset)
@@ -34,7 +32,6 @@ class OptimizationsTemplateTagsTest(TestCase):
             url,
         )
         
-    @skipUnlessTestThumbnailAsset
     def testImgTag(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -54,7 +51,6 @@ class OptimizationsTemplateTagsTest(TestCase):
             ),
         )
         
-    @skipUnlessTestThumbnailAsset
     def testGetImgTag(self):
         asset, image_size = get_test_thumbnail_asset()
         width, height = image_size
@@ -74,7 +70,6 @@ class OptimizationsTemplateTagsTest(TestCase):
             ),
         )
         
-    @skipUnlessTestStylesheetAsset
     def testStylesheetTag(self):
         stylesheet = get_test_stylesheet_asset()
         urls = default_stylesheet_cache.get_urls((stylesheet,))
@@ -87,7 +82,6 @@ class OptimizationsTemplateTagsTest(TestCase):
             ),
         )
         
-    @skipUnlessTestJavascriptAsset
     def testScriptTag(self):
         script = get_test_javascript_asset()
         urls = default_javascript_cache.get_urls((script,))

@@ -3,6 +3,7 @@
 import os.path, subprocess
 
 from django.conf import settings
+from django.utils import six
 
 import optimizations
 
