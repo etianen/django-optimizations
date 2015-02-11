@@ -5,7 +5,11 @@ from contextlib import closing
 import os.path
 import re
 import subprocess
-from django.utils.six.moves.urllib.parse import urlparse
+
+try:
+    from django.utils.six.moves.urllib.parse import urlparse
+except ImportError:
+    from six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile
